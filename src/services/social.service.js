@@ -1,10 +1,20 @@
 /**
- * Mock social-media metrics fetcher.
+ * @file socialService.js
+ * @description Mock social-media metrics fetcher.
  *
- * In production, replace with real API calls (Instagram Graph API, TikTok API, YouTube Data API, etc.)
- * This module returns randomised but realistic-looking data for development.
+ * In production, replace the `fetchSocialMetrics` function with real
+ * API calls to one or more of these:
+ *   • Instagram Graph API  — followers, engagement, reach
+ *   • TikTok API           — followers, likes, video views
+ *   • YouTube Data API     — subscribers, view count
+ *   • Twitter / X API      — followers, impressions
+ *
+ * The current implementation returns randomised but realistic-looking
+ * data so the rest of the app can be developed and tested without
+ * needing API keys.
  */
 
+/** Generate a random integer between min and max (inclusive). */
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }

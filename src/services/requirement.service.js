@@ -1,8 +1,25 @@
+/**
+ * @file requirementService.js
+ * @description Business logic for campaign requirement CRUD.
+ *
+ * A "requirement" is a campaign brief posted by a brand describing
+ * the kind of creators they want to work with.  Brand users can
+ * create, update, and delete their own requirements.  Everyone
+ * can list and view requirements.
+ */
+
 import { eq, gte, sql } from 'drizzle-orm';
 import db from '../db/index.js';
 import { requirements } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
 
+/**
+ * Create a new campaign requirement.
+ *
+ * @param {string} brandId – UUID of the brand user
+ * @param {Object} data    – requirement fields
+ * @returns {Object} the newly created requirement row
+ */
 export async function createRequirement(brandId, data) {
   const [req] = await db
     .insert(requirements)
@@ -11,6 +28,17 @@ export async function createRequirement(brandId, data) {
   return req;
 }
 
+/**
+ * List requirements with optional filters and pagination.
+ *
+ * @param {Object} filters
+ * @param {string} [filters.niche]        – filter by niche tag
+ * @param {number} [filters.minFollowers] – minimum follower threshold
+ * @param {string} [filters.status]       – open | closed | paused
+ * @param {number} [filters.page=1]
+ * @param {number} [filters.limit=20]
+ * @returns {Object[]} array of requirement rows
+ */
 export async function listRequirements({ niche, minFollowers, status, page = 1, limit = 20 }) {
   const conditions = [];
 
@@ -34,6 +62,13 @@ export async function listRequirements({ niche, minFollowers, status, page = 1, 
   return query.limit(Number(limit)).offset(offset);
 }
 
+/**
+ * Get a single requirement by id.
+ *
+ * @param {string} id – requirement UUID
+ * @returns {Object} requirement row
+ * @throws {AppError} 404 if not found
+ */
 export async function getRequirementById(id) {
   const [req] = await db
     .select()
@@ -44,6 +79,15 @@ export async function getRequirementById(id) {
   return req;
 }
 
+/**
+ * Update an existing requirement (owner only).
+ *
+ * @param {string} id      – requirement UUID
+ * @param {string} brandId – UUID of the requesting brand (for ownership check)
+ * @param {Object} data    – fields to update
+ * @returns {Object} updated requirement row
+ * @throws {AppError} 404 if not found, 403 if not the owner
+ */
 export async function updateRequirement(id, brandId, data) {
   const [existing] = await db
     .select()
@@ -62,6 +106,14 @@ export async function updateRequirement(id, brandId, data) {
   return updated;
 }
 
+/**
+ * Delete a requirement (owner only).
+ *
+ * @param {string} id      – requirement UUID
+ * @param {string} brandId – UUID of the requesting brand
+ * @returns {{ message: string }}
+ * @throws {AppError} 404 if not found, 403 if not the owner
+ */
 export async function deleteRequirement(id, brandId) {
   const [existing] = await db
     .select()

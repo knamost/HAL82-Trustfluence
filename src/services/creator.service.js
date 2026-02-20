@@ -1,10 +1,25 @@
+/**
+ * @file creatorService.js
+ * @description Business logic for creator profile CRUD and listing.
+ *
+ * Provides:
+ *   • upsertCreatorProfile – create or update a creator's profile
+ *   • getCreatorProfile    – fetch by user id (own profile)
+ *   • listCreators         – filtered, paginated list
+ *   • getCreatorById       – public view with average rating
+ */
+
 import { eq, ilike, gte, sql } from 'drizzle-orm';
 import db from '../db/index.js';
-import { creatorProfiles, users, ratings } from '../models/index.js';
+import { creatorProfiles, ratings } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
 
 /**
  * Create or update the creator profile for the authenticated user.
+ *
+ * @param {string} userId – the authenticated user's UUID
+ * @param {Object} data   – profile fields (displayName, bio, niches, etc.)
+ * @returns {Object} the created or updated profile row
  */
 export async function upsertCreatorProfile(userId, data) {
   // Check if profile exists
@@ -31,7 +46,11 @@ export async function upsertCreatorProfile(userId, data) {
 }
 
 /**
- * Get a single creator profile by user id.
+ * Get a single creator profile by the owning user's id.
+ *
+ * @param {string} userId – UUID of the user
+ * @returns {Object} profile row
+ * @throws {AppError} 404 if not found
  */
 export async function getCreatorProfile(userId) {
   const [profile] = await db
@@ -45,7 +64,17 @@ export async function getCreatorProfile(userId) {
 }
 
 /**
- * List creators with optional filters: niche, minFollowers, minEngagement, search (display name).
+ * List creators with optional filters and pagination.
+ *
+ * Supported query params:
+ *   • niche         – filter by jsonb niches array (contains)
+ *   • minFollowers  – minimum follower count
+ *   • minEngagement – minimum engagement rate (%)
+ *   • search        – case-insensitive display name search
+ *   • page / limit  – pagination (defaults: page=1, limit=20)
+ *
+ * @param {Object} filters – query string parameters
+ * @returns {Object[]} array of creator profiles
  */
 export async function listCreators({ niche, minFollowers, minEngagement, search, page = 1, limit = 20 }) {
   const conditions = [];
@@ -80,7 +109,12 @@ export async function listCreators({ niche, minFollowers, minEngagement, search,
 }
 
 /**
- * Get a creator profile by profile id (public view).
+ * Get a creator profile by its own id (public view).
+ * Also attaches the average rating and total rating count.
+ *
+ * @param {string} profileId – creator_profiles.id UUID
+ * @returns {Object} profile + avgRating + ratingCount
+ * @throws {AppError} 404 if not found
  */
 export async function getCreatorById(profileId) {
   const [profile] = await db
