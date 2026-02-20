@@ -9,7 +9,7 @@
  *   • getCreatorById       – public view with average rating
  */
 
-import { eq, ilike, gte, sql } from 'drizzle-orm';
+import { eq, ilike, gte, sql, and } from 'drizzle-orm';
 import db from '../db/index.js';
 import { creatorProfiles, ratings } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
@@ -100,8 +100,8 @@ export async function listCreators({ niche, minFollowers, minEngagement, search,
 
   let query = db.select().from(creatorProfiles);
 
-  for (const cond of conditions) {
-    query = query.where(cond);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
   }
 
   const results = await query.limit(Number(limit)).offset(offset);

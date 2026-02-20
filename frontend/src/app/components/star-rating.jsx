@@ -1,18 +1,6 @@
 import { Star } from "lucide-react";
 
-interface StarRatingProps {
-  rating: number;
-  size?: number;
-  showValue?: boolean;
-}
-
-interface StarRatingInputProps {
-  value: number;
-  onChange: (value: number) => void;
-  size?: number;
-}
-
-export function StarRating({ rating, size = 16, showValue = true }: StarRatingProps) {
+export function StarRating({ rating, size = 16, showValue = true }) {
   const fullStars = Math.floor(rating);
   const hasHalf = rating - fullStars >= 0.3;
   const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
@@ -42,7 +30,7 @@ export function StarRating({ rating, size = 16, showValue = true }: StarRatingPr
   );
 }
 
-export function StarRatingInput({ value, onChange, size = 24 }: StarRatingInputProps) {
+export function StarRatingInput({ value, onChange, size = 24 }) {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((star) => (

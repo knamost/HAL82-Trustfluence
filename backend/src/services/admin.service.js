@@ -5,7 +5,6 @@
  * Provides:
  *   • getDashboardStats – platform-wide counts
  *   • listUsers         – paginated user list with optional role filter
- *   • updateUserRole    – change a user's role
  *   • deleteUser        – remove a user account
  */
 
@@ -69,16 +68,16 @@ export async function listUsers({ role, search, page = 1, limit = 20 }) {
     })
     .from(users);
 
-  for (const cond of conditions) {
-    query = query.where(cond);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
   }
 
   const results = await query.orderBy(users.createdAt).limit(Number(limit)).offset(offset);
 
   // Get total count for pagination
   let countQuery = db.select({ count: sql`COUNT(*)::int` }).from(users);
-  for (const cond of conditions) {
-    countQuery = countQuery.where(cond);
+  if (conditions.length > 0) {
+    countQuery = countQuery.where(and(...conditions));
   }
   const [{ count: total }] = await countQuery;
 

@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import {
   Building2, TrendingUp, Star, Briefcase,
-  Settings, ChevronRight, BarChart3, Loader2, Plus, Trash2, Pause, Play
+  Settings, ChevronRight, BarChart3, Loader2, Plus, Trash2, Pause, Play, AlertCircle
 } from "lucide-react";
 import { getMyBrandProfile, upsertBrandProfile, type BrandProfile } from "../../lib/brands.service";
 import { listRequirements, createRequirement, updateRequirement, deleteRequirement } from "../../lib/requirements.service";
 import { getRatings, getReviews } from "../../lib/feedback.service";
-import { brands as mockBrands, reviews as mockReviews, requirements as mockRequirements } from "./mock-data";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
@@ -24,10 +23,11 @@ const sections = [
 export function BrandDashboard() {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("overview");
-  const [brand, setBrand] = useState<any>(mockBrands?.[0] ?? { name: "My Brand", category: "", logo: "" });
-  const [reviews, setReviews] = useState<any[]>(mockReviews);
-  const [myRequirements, setMyRequirements] = useState<any[]>(mockRequirements);
+  const [brand, setBrand] = useState<any>({ name: "My Brand", category: "", logo: "" });
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [myRequirements, setMyRequirements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadDashboard() {
@@ -64,7 +64,7 @@ export function BrandDashboard() {
                   comment: r.content,
                   date: r.createdAt,
                 }))
-              : mockReviews
+              : []
           );
           const brandReqs = Array.isArray(reqs)
             ? reqs
@@ -84,11 +84,11 @@ export function BrandDashboard() {
                   minEngagementRate: r.minEngagementRate,
                   status: r.status,
                 }))
-            : mockRequirements;
+            : [];
           setMyRequirements(brandReqs);
         }
-      } catch {
-        // Use mock data as fallback
+      } catch (err: any) {
+        setError(err?.message || "Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
@@ -123,6 +123,12 @@ export function BrandDashboard() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <AlertCircle className="w-10 h-10 text-red-400 mb-3" />
+          <p className="text-red-600 mb-1 font-medium">Failed to load dashboard</p>
+          <p className="text-muted-foreground text-sm">{error}</p>
         </div>
       ) : (
         <>
@@ -331,7 +337,7 @@ function ProfileSection({ brand, setBrand }: { brand: any; setBrand: React.Dispa
             />
           </div>
  
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>
                 Category
@@ -371,7 +377,7 @@ function ProfileSection({ brand, setBrand }: { brand: any; setBrand: React.Dispa
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
             style={{ fontWeight: 500 }}
           >
             {saving ? "Saving…" : "Save Changes"}
@@ -490,7 +496,7 @@ function RequirementsSection({
             <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Niches (comma-separated)</label>
             <input value={form.niches} onChange={(e) => setForm((f) => ({ ...f, niches: e.target.value }))} placeholder="Fashion, Lifestyle, Tech" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Min Followers</label>
               <input value={form.minFollowers} onChange={(e) => setForm((f) => ({ ...f, minFollowers: e.target.value }))} type="number" placeholder="10000" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
@@ -500,7 +506,7 @@ function RequirementsSection({
               <input value={form.minEngagementRate} onChange={(e) => setForm((f) => ({ ...f, minEngagementRate: e.target.value }))} type="number" step="0.1" placeholder="3.0" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Budget Min ($)</label>
               <input value={form.budgetMin} onChange={(e) => setForm((f) => ({ ...f, budgetMin: e.target.value }))} type="number" placeholder="500" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
@@ -510,11 +516,11 @@ function RequirementsSection({
               <input value={form.budgetMax} onChange={(e) => setForm((f) => ({ ...f, budgetMax: e.target.value }))} type="number" placeholder="5000" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
             </div>
           </div>
-          <div className="flex gap-3">
-            <button onClick={handleCreate} disabled={creating || !form.title.trim()} className="px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50" style={{ fontWeight: 500 }}>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button onClick={handleCreate} disabled={creating || !form.title.trim()} className="w-full sm:w-auto px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50" style={{ fontWeight: 500 }}>
               {creating ? "Creating…" : "Create Campaign"}
             </button>
-            <button onClick={() => setShowCreate(false)} className="px-6 py-3 border border-border rounded-xl hover:bg-gray-50 transition-colors" style={{ fontWeight: 500 }}>
+            <button onClick={() => setShowCreate(false)} className="w-full sm:w-auto px-6 py-3 border border-border rounded-xl hover:bg-gray-50 transition-colors" style={{ fontWeight: 500 }}>
               Cancel
             </button>
           </div>
@@ -625,7 +631,7 @@ function SettingsSection({ email }: { email: string }) {
             <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Password</label>
             <input type="password" defaultValue="********" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
           </div>
-          <button className="px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500 }}>
+          <button className="w-full sm:w-auto px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500 }}>
             Update Settings
           </button>
         </div>

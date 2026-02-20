@@ -2,33 +2,11 @@ import { useParams, Link } from "react-router";
 import { useState, useEffect } from "react";
 import { Star, Users, TrendingUp, Instagram, Youtube, MessageCircle, ExternalLink, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { getCreator } from "../../lib/creators.service";
-import { getReviews, getRatings, type Review, type RatingsSummary } from "../../lib/feedback.service";
+import { getReviews, getRatings } from "../../lib/feedback.service";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
-interface CreatorView {
-  name: string;
-  bio: string;
-  platform: string;
-  handle: string;
-  photo: string;
-  followers: number;
-  engagementRate: number;
-  niches: string[];
-  promotionTypes: string[];
-  rating: number;
-  reviewCount: number;
-}
-
-interface ReviewView {
-  id: string;
-  reviewerName: string;
-  rating: number;
-  comment: string;
-  date: string;
-}
-
-const platformIcons: Record<string, typeof Instagram> = {
+const platformIcons = {
   Instagram: Instagram,
   instagram: Instagram,
   YouTube: Youtube,
@@ -41,9 +19,9 @@ export function CreatorProfile() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [creator, setCreator] = useState<CreatorView | null>(null);
-  const [reviews, setReviews] = useState<ReviewView[]>([]);
-  const [ratingInfo, setRatingInfo] = useState<{ avgRating: number; ratingCount: number }>({ avgRating: 0, ratingCount: 0 });
+  const [creator, setCreator] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [ratingInfo, setRatingInfo] = useState({ avgRating: 0, ratingCount: 0 });
 
   useEffect(() => {
     async function load() {
@@ -51,9 +29,9 @@ export function CreatorProfile() {
       setError("");
       try {
         const [profile, reviewsData, ratingsData] = await Promise.all([
-          getCreator(id!),
-          getReviews(id!).catch(() => []),
-          getRatings(id!).catch(() => ({ ratings: [], avgRating: 0, ratingCount: 0 })),
+          getCreator(id),
+          getReviews(id).catch(() => []),
+          getRatings(id).catch(() => ({ ratings: [], avgRating: 0, ratingCount: 0 })),
         ]);
         setCreator({
           name: profile.displayName,
@@ -65,18 +43,18 @@ export function CreatorProfile() {
           engagementRate: profile.engagementRate,
           niches: profile.niches || [],
           promotionTypes: profile.promotionTypes || [],
-          rating: (ratingsData as RatingsSummary).avgRating || 0,
-          reviewCount: (ratingsData as RatingsSummary).ratingCount || 0,
+          rating: ratingsData.avgRating || 0,
+          reviewCount: ratingsData.ratingCount || 0,
         });
-        setRatingInfo({ avgRating: (ratingsData as RatingsSummary).avgRating || 0, ratingCount: (ratingsData as RatingsSummary).ratingCount || 0 });
-        setReviews((reviewsData as Review[]).map((r) => ({
+        setRatingInfo({ avgRating: ratingsData.avgRating || 0, ratingCount: ratingsData.ratingCount || 0 });
+        setReviews(reviewsData.map((r) => ({
           id: r.id,
           reviewerName: r.fromUserId,
           rating: 0,
           comment: r.content,
           date: r.createdAt,
         })));
-      } catch (err: any) {
+      } catch (err) {
         setError(err?.message || "Failed to load creator profile");
       } finally {
         setLoading(false);

@@ -1,23 +1,54 @@
 import { useParams, Link } from "react-router";
 import { useState, useEffect } from "react";
-import { Star, ExternalLink, ArrowLeft, ShieldCheck, Globe, Tag, Loader2 } from "lucide-react";
-import { getBrand, type BrandProfile as BrandProfileType } from "../../lib/brands.service";
+import { ArrowLeft, ShieldCheck, Globe, Tag, Loader2, AlertCircle } from "lucide-react";
+import { getBrand } from "../../lib/brands.service";
 import { getReviews, getRatings, type Review, type RatingsSummary } from "../../lib/feedback.service";
 import { listRequirements, type Requirement } from "../../lib/requirements.service";
-import { brands as mockBrands, brandReviews as mockBrandReviews, requirements as mockRequirements } from "./mock-data";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+
+interface BrandView {
+  name: string;
+  logo: string;
+  website: string;
+  category: string;
+  description: string;
+  rating: number;
+  reviewCount: number;
+  trustScore: number;
+}
+
+interface ReqView {
+  id: string;
+  title: string;
+  description: string;
+  niches: string[];
+  minFollowers: number | null;
+  minEngagement: number | null;
+  budget: string;
+  status: string;
+}
+
+interface ReviewView {
+  id: string;
+  reviewerName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
 
 export function BrandProfile() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
-  const [brand, setBrand] = useState<any>(null);
-  const [openReqs, setOpenReqs] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [error, setError] = useState("");
+  const [brand, setBrand] = useState<BrandView | null>(null);
+  const [openReqs, setOpenReqs] = useState<ReqView[]>([]);
+  const [reviews, setReviews] = useState<ReviewView[]>([]);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
+      setError("");
       try {
         const [profile, ratingsData, reviewsData, reqs] = await Promise.all([
           getBrand(id!),
@@ -53,12 +84,8 @@ export function BrandProfile() {
           comment: r.content,
           date: r.createdAt,
         })));
-      } catch {
-        // Fallback to mock data
-        const mock = mockBrands.find((b) => b.id === id) || mockBrands[0];
-        setBrand(mock);
-        setOpenReqs(mockRequirements.filter((r) => r.brand === mock.name && r.status === "Open"));
-        setReviews(mockBrandReviews);
+      } catch (err: any) {
+        setError(err?.message || "Failed to load brand profile");
       } finally {
         setLoading(false);
       }
@@ -74,7 +101,20 @@ export function BrandProfile() {
     );
   }
 
-  if (!brand) return null;
+  if (error || !brand) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-[#0A1628] text-lg font-semibold mb-2">Failed to load brand</h2>
+          <p className="text-muted-foreground mb-4">{error || "Brand not found"}</p>
+          <Link to="/" className="inline-flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors text-sm font-medium">
+            <ArrowLeft className="w-4 h-4" /> Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: "'Inter', sans-serif" }}>

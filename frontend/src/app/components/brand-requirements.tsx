@@ -1,10 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Filter, X, Plus, DollarSign, Users, TrendingUp, Briefcase, Loader2 } from "lucide-react";
+import { X, Plus, DollarSign, Users, TrendingUp, Briefcase } from "lucide-react";
 import { listRequirements, createRequirement, type Requirement } from "../../lib/requirements.service";
-import { requirements as mockRequirements } from "./mock-data";
 import { useAuth } from "../context/auth-context";
+import { COMMON_NICHES } from "../../lib/constants";
 
-const allNiches = [...new Set(mockRequirements.flatMap((r) => r.niches))].sort();
+interface ReqView {
+  id: string;
+  title: string;
+  description: string;
+  brand: string;
+  niches: string[];
+  minFollowers: number | null;
+  minEngagement: number | null;
+  budget: string;
+  status: string;
+}
 
 export function BrandRequirements() {
   const { isBrand } = useAuth();
@@ -12,9 +22,9 @@ export function BrandRequirements() {
   const [minFollowers, setMinFollowers] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [reqs, setReqs] = useState<any[]>([]);
+  const [reqs, setReqs] = useState<ReqView[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
+  const [error, setError] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
 
   // Form state for create modal
@@ -27,6 +37,7 @@ export function BrandRequirements() {
 
   const fetchReqs = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const data = await listRequirements({
         niche: selectedNiche || undefined,
@@ -44,16 +55,8 @@ export function BrandRequirements() {
         budget: r.budgetMin && r.budgetMax ? `$${r.budgetMin.toLocaleString()} - $${r.budgetMax.toLocaleString()}` : "TBD",
         status: r.status === "open" ? "Open" : r.status === "closed" ? "Closed" : "Paused",
       })));
-      setUsingMock(false);
-    } catch {
-      setUsingMock(true);
-      const filtered = mockRequirements.filter((req) => {
-        if (selectedNiche && !req.niches.includes(selectedNiche)) return false;
-        if (minFollowers && req.minFollowers < parseInt(minFollowers)) return false;
-        if (selectedStatus && req.status !== selectedStatus) return false;
-        return true;
-      });
-      setReqs(filtered);
+    } catch (err: any) {
+      setError(err?.message || "Failed to load campaigns");
     } finally {
       setLoading(false);
     }
@@ -109,7 +112,7 @@ export function BrandRequirements() {
           {isBrand && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-5 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0"
+              className="inline-flex items-center gap-2 px-5 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0 w-full sm:w-auto justify-center"
               style={{ fontWeight: 500 }}
             >
               <Plus className="w-4 h-4" />
@@ -129,7 +132,7 @@ export function BrandRequirements() {
                 className="w-full px-3 py-2.5 rounded-lg border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
               >
                 <option value="">All Niches</option>
-                {allNiches.map((niche) => (
+                {COMMON_NICHES.map((niche) => (
                   <option key={niche} value={niche}>{niche}</option>
                 ))}
               </select>
@@ -162,7 +165,7 @@ export function BrandRequirements() {
         {/* Results Count */}
         <div className="mb-4 text-muted-foreground" style={{ fontSize: '0.875rem' }}>
           {loading ? "Loading..." : `Showing ${filteredRequirements.length} campaign${filteredRequirements.length !== 1 ? "s" : ""}`}
-          {usingMock && !loading && <span className="ml-2 text-amber-500">(offline — showing sample data)</span>}
+          {error && !loading && <span className="ml-2 text-red-500">— {error}</span>}
         </div>
 
         {/* Requirements Cards */}
@@ -228,7 +231,7 @@ export function BrandRequirements() {
 
               {req.status === "Open" && (
                 <div className="mt-4">
-                  <button className="px-5 py-2.5 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                  <button className="w-full sm:w-auto px-5 py-2.5 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500, fontSize: '0.875rem' }}>
                     Apply Now
                   </button>
                 </div>
@@ -278,7 +281,7 @@ export function BrandRequirements() {
                   className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Min Followers</label>
                   <input
@@ -301,7 +304,7 @@ export function BrandRequirements() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Budget Min ($)</label>
                   <input

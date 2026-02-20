@@ -14,6 +14,8 @@
  * needing API keys.
  */
 
+import { AppError } from '../utils/AppError.js';
+
 /** Generate a random integer between min and max (inclusive). */
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -31,11 +33,7 @@ export function fetchSocialMetrics(platform, handle) {
   const ranges = PLATFORM_RANGES[key];
 
   if (!ranges) {
-    return {
-      platform,
-      handle,
-      error: `Unsupported platform "${platform}". Supported: ${Object.keys(PLATFORM_RANGES).join(', ')}`,
-    };
+    throw new AppError(`Unsupported platform "${platform}". Supported: ${Object.keys(PLATFORM_RANGES).join(', ')}`, 400);
   }
 
   const followers = randomInt(ranges.followers[0], ranges.followers[1]);

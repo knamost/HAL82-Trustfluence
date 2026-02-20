@@ -9,7 +9,7 @@
  *   • getBrandById       – public view with average rating
  */
 
-import { eq, ilike, sql } from 'drizzle-orm';
+import { eq, ilike, sql, and } from 'drizzle-orm';
 import db from '../db/index.js';
 import { brandProfiles, ratings } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
@@ -89,8 +89,8 @@ export async function listBrands({ category, minRating, search, page = 1, limit 
 
   let query = db.select().from(brandProfiles);
 
-  for (const cond of conditions) {
-    query = query.where(cond);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
   }
 
   let results = await query.limit(Number(limit)).offset(offset);

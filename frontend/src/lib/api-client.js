@@ -7,7 +7,7 @@
  *   • 401 handling via response interceptor (clears token, redirects to /auth)
  *   • Typed error class for downstream consumption
  */
-import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
+import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -21,20 +21,20 @@ export const api = axios.create({
 // ── Token helpers ──────────────────────────────────────────────────────────
 const TOKEN_KEY = "tf_token";
 
-export function getToken(): string | null {
+export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-export function setToken(token: string): void {
+export function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
-export function removeToken(): void {
+export function removeToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
 // ── Request interceptor — attach JWT ───────────────────────────────────────
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+api.interceptors.request.use((config) => {
   const token = getToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -45,7 +45,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // ── Response interceptor — handle errors ───────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ message?: string; error?: string }>) => {
+  (error) => {
     const status = error.response?.status ?? 0;
     const data = error.response?.data;
     const message =
@@ -64,10 +64,9 @@ api.interceptors.response.use(
   }
 );
 
-// ── Typed API error ────────────────────────────────────────────────────────
+// ── API error ──────────────────────────────────────────────────────────────
 export class ApiError extends Error {
-  status: number;
-  constructor(message: string, status: number) {
+  constructor(message, status) {
     super(message);
     this.status = status;
     this.name = "ApiError";
@@ -75,22 +74,22 @@ export class ApiError extends Error {
 }
 
 // ── Convenience wrappers (keep backward compat with service files) ─────────
-export async function apiGet<T>(path: string, _auth = false): Promise<T> {
-  const { data } = await api.get<T>(path);
+export async function apiGet(path, _auth = false) {
+  const { data } = await api.get(path);
   return data;
 }
 
-export async function apiPost<T>(path: string, body: unknown, _auth = false): Promise<T> {
-  const { data } = await api.post<T>(path, body);
+export async function apiPost(path, body, _auth = false) {
+  const { data } = await api.post(path, body);
   return data;
 }
 
-export async function apiPut<T>(path: string, body: unknown, _auth = false): Promise<T> {
-  const { data } = await api.put<T>(path, body);
+export async function apiPut(path, body, _auth = false) {
+  const { data } = await api.put(path, body);
   return data;
 }
 
-export async function apiDelete<T>(path: string, _auth = true): Promise<T> {
-  const { data } = await api.delete<T>(path);
+export async function apiDelete(path, _auth = true) {
+  const { data } = await api.delete(path);
   return data;
 }

@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import {
   Users, TrendingUp, Eye, Star, User, Briefcase,
-  Settings, ChevronRight, BarChart3, Loader2
+  Settings, ChevronRight, BarChart3, Loader2, AlertCircle
 } from "lucide-react";
 import { getMyCreatorProfile, upsertCreatorProfile } from "../../lib/creators.service";
 import { listRequirements } from "../../lib/requirements.service";
 import { getRatings, getReviews } from "../../lib/feedback.service";
-import { creators as mockCreators, reviews as mockReviews, requirements as mockRequirements } from "./mock-data";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
@@ -24,12 +23,11 @@ const sections = [
 export function CreatorDashboard() {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("overview");
-  const [creator, setCreator] = useState<any>(mockCreators[0]);
-  const [reviews, setReviews] = useState<any[]>(mockReviews);
-  const [matchingRequirements, setMatchingRequirements] = useState<any[]>(
-    mockRequirements.filter((r) => r.status === "Open")
-  );
+  const [creator, setCreator] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [matchingRequirements, setMatchingRequirements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadDashboard() {
@@ -67,7 +65,7 @@ export function CreatorDashboard() {
             rating: 0,
             comment: r.content,
             date: r.createdAt,
-          })) : mockReviews);
+          })) : []);
           setMatchingRequirements(Array.isArray(reqs) ? reqs.map((r: any) => ({
             id: r.id,
             title: r.title,
@@ -75,10 +73,10 @@ export function CreatorDashboard() {
             niches: r.niches || [],
             budget: r.budgetMin && r.budgetMax ? `$${r.budgetMin} - $${r.budgetMax}` : "TBD",
             status: "Open",
-          })) : mockRequirements.filter((r) => r.status === "Open"));
+          })) : []);
         }
-      } catch {
-        // Use mock data as fallback
+      } catch (err: any) {
+        setError(err?.message || "Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
@@ -113,6 +111,18 @@ export function CreatorDashboard() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <AlertCircle className="w-10 h-10 text-red-400 mb-3" />
+          <p className="text-red-600 mb-1 font-medium">Failed to load dashboard</p>
+          <p className="text-muted-foreground text-sm">{error}</p>
+        </div>
+      ) : !creator ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <User className="w-10 h-10 text-muted-foreground mb-3" />
+          <p className="font-medium mb-1">No creator profile yet</p>
+          <p className="text-muted-foreground text-sm">Set up your profile to get started.</p>
         </div>
       ) : (
         <>
@@ -277,7 +287,7 @@ function ProfileSection({ creator, setCreator }: { creator: any; setCreator: Rea
             <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Bio</label>
             <textarea value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} rows={3} className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Platform</label>
               <select value={form.platform} onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]">
@@ -291,7 +301,7 @@ function ProfileSection({ creator, setCreator }: { creator: any; setCreator: Rea
               <input value={form.handle} onChange={(e) => setForm((f) => ({ ...f, handle: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
             </div>
           </div>
-          <button onClick={handleSave} disabled={saving} className="px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50" style={{ fontWeight: 500 }}>
+          <button onClick={handleSave} disabled={saving} className="w-full sm:w-auto px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50" style={{ fontWeight: 500 }}>
             {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
@@ -386,7 +396,7 @@ function SettingsSection({ email }: { email: string }) {
             <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Password</label>
             <input type="password" defaultValue="********" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
           </div>
-          <button className="px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500 }}>
+          <button className="w-full sm:w-auto px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500 }}>
             Update Settings
           </button>
         </div>

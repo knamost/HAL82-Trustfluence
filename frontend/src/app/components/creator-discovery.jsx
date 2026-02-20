@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { Search, Star, Users, TrendingUp, Filter, X, Loader2, AlertCircle } from "lucide-react";
-import { listCreators, type CreatorProfile } from "../../lib/creators.service";
+import { listCreators } from "../../lib/creators.service";
 import { COMMON_NICHES, PLATFORMS } from "../../lib/constants";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
@@ -13,7 +13,7 @@ export function CreatorDiscovery() {
   const [minEngagement, setMinEngagement] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
-  const [creators, setCreators] = useState<CreatorProfile[]>([]);
+  const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -28,7 +28,7 @@ export function CreatorDiscovery() {
         minEngagement: minEngagement ? parseFloat(minEngagement) : undefined,
       });
       setCreators(data);
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.message || "Failed to load creators");
     } finally {
       setLoading(false);

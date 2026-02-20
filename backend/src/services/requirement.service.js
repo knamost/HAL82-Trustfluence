@@ -8,7 +8,7 @@
  * can list and view requirements.
  */
 
-import { eq, gte, sql } from 'drizzle-orm';
+import { eq, gte, sql, and } from 'drizzle-orm';
 import db from '../db/index.js';
 import { requirements } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
@@ -55,8 +55,8 @@ export async function listRequirements({ niche, minFollowers, status, page = 1, 
   const offset = (Number(page) - 1) * Number(limit);
 
   let query = db.select().from(requirements);
-  for (const cond of conditions) {
-    query = query.where(cond);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
   }
 
   return query.limit(Number(limit)).offset(offset);

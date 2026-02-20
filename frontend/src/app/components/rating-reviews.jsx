@@ -13,7 +13,7 @@ export function RatingReviews() {
   const [apiLoading, setApiLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (rating === 0 || !comment.trim()) return;
     setError("");
