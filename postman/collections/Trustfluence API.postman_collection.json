@@ -53,7 +53,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n\t\"email\": \"user@example.com\",\n\t\"password\": \"password123\",\n\t\"role\": \"creator\"\n}"
+              "raw": "{\n\t\"email\": \"creator@example.com\",\n\t\"password\": \"securepassword123\",\n\t\"role\": \"creator\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
@@ -259,7 +259,6 @@
               ],
               "variable": [
                 {
-                  "id": "951d796b-9289-4776-8df7-589e80afad92",
                   "key": "id",
                   "value": "",
                   "description": "Creator ID"
@@ -400,7 +399,6 @@
               ],
               "variable": [
                 {
-                  "id": "48d102c8-1443-49d8-85ae-04366bf63f39",
                   "key": "id",
                   "value": "",
                   "description": "Brand ID"
@@ -517,7 +515,6 @@
               ],
               "variable": [
                 {
-                  "id": "81256f54-f69c-4c93-9cd9-5958dd908bdd",
                   "key": "id",
                   "value": "",
                   "description": "Requirement ID"
@@ -544,7 +541,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n\t\"title\": \"Updated Requirement\",\n\t\"status\": \"closed\"\n}"
+              "raw": "{\n\t\"title\": \"Updated Campaign Title\",\n\t\"description\": \"Updated campaign description\",\n\t\"niches\": [\"tech\", \"lifestyle\"],\n\t\"minFollowers\": 5000,\n\t\"minEngagementRate\": 3.5,\n\t\"budgetMin\": 500,\n\t\"budgetMax\": 5000,\n\t\"status\": \"open\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/requirements/:id",
@@ -557,7 +554,6 @@
               ],
               "variable": [
                 {
-                  "id": "870f9e65-4700-4cc5-b155-d8c49c9ad183",
                   "key": "id",
                   "value": "",
                   "description": "Requirement ID"
@@ -588,7 +584,6 @@
               ],
               "variable": [
                 {
-                  "id": "3ead51e8-2a1c-47de-8c8b-5a65bc9ad7b7",
                   "key": "id",
                   "value": "",
                   "description": "Requirement ID"
@@ -658,7 +653,6 @@
               ],
               "variable": [
                 {
-                  "id": "67d069aa-a8d2-4044-a366-93543b7cbf03",
                   "key": "userId",
                   "value": "",
                   "description": "User ID to get ratings for"
@@ -722,7 +716,6 @@
               ],
               "variable": [
                 {
-                  "id": "c0585f8f-46bd-493f-9a1c-538abb673b72",
                   "key": "userId",
                   "value": "",
                   "description": "User ID to get reviews for"
@@ -760,13 +753,11 @@
               ],
               "variable": [
                 {
-                  "id": "8b54fc34-1784-4a43-a4c6-daa590c8e0e7",
                   "key": "platform",
                   "value": "instagram",
                   "description": "Social media platform (e.g. instagram, twitter, youtube)"
                 },
                 {
-                  "id": "5b762401-053e-427b-8e64-8f9b658026a0",
                   "key": "handle",
                   "value": "janecreator",
                   "description": "Social media handle"
