@@ -1,47 +1,42 @@
-import api from ".";
+import { apiPost, apiGet, setToken, removeToken } from "./index";
 
-export const login = async (data) => {
-  try {
-    const response = await api.post("/auth/login", data);
-    console.log(response);
+/**
+ * POST /auth/login
+ * Returns user object + token. Stores token in localStorage.
+ */
+export async function login({ email, password }) {
+  const data = await apiPost("/auth/login", { email, password });
+  if (data.token) setToken(data.token);
+  return data.user || data;
+}
 
-    return response.data;
-  } catch (error) {
-    console.log(error);
-    throw error.response
-  }
-};
+/**
+ * POST /auth/register
+ * Returns user object + token. Stores token in localStorage.
+ */
+export async function register({ email, password, role, first_name, last_name }) {
+  const data = await apiPost("/auth/register", {
+    email,
+    password,
+    role,
+    first_name,
+    last_name,
+  });
+  if (data.token) setToken(data.token);
+  return data.user || data;
+}
 
+/**
+ * GET /auth/me
+ * Returns the currently authenticated user.
+ */
+export async function getMe() {
+  return apiGet("/auth/me");
+}
 
-// register
-export const register = async (data) => {
-  try {
-    // Only send fields the backend expects
-    const { first_name, last_name, email, password, role } = data;
-    const response = await api.post("/auth/register", {
-      first_name,
-      last_name,
-      email,
-      password,
-      role,
-    });
-    console.log(response);
-
-    return response.data;
-  } catch (error) {
-    console.log(error);
-    throw error.response;;
-  }
-};
-
-
-// get user detail
-export const getUserDetail = async() =>{
-  try {
-    const  response = await api.get('/auth/me')
-    return response.data 
-  } catch (error) {
-    console.log(error)
-    throw error.response   
-  }
+/**
+ * Logout — just clear the token from localStorage.
+ */
+export function logout() {
+  removeToken();
 }

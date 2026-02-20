@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import {
   Users, TrendingUp, Eye, Star, User, Briefcase,
-  Settings, ChevronRight, BarChart3, Loader2, AlertCircle
+  Settings, ChevronRight, BarChart3, Loader2, AlertCircle,
+  Pencil, Save, X
 } from "lucide-react";
-import { getMyCreatorProfile, upsertCreatorProfile } from "../../lib/creators.service";
-import { listRequirements } from "../../lib/requirements.service";
-import { getRatings, getReviews } from "../../lib/feedback.service";
+import { getMyCreatorProfile, upsertCreatorProfile } from "../../api/creator.api";
+import { listRequirements } from "../../api/requirement.api";
+import { getRatings, getReviews } from "../../api/feedback.api";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
@@ -23,9 +24,9 @@ const sections = [
 export function CreatorDashboard() {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("overview");
-  const [creator, setCreator] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [matchingRequirements, setMatchingRequirements] = useState<any[]>([]);
+  const [creator, setCreator] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [matchingRequirements, setMatchingRequirements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -34,16 +35,10 @@ export function CreatorDashboard() {
       setLoading(true);
       try {
         const profile = await getMyCreatorProfile();
+
+        // Use backend model fields directly
         setCreator({
-          name: profile.displayName,
-          bio: profile.bio || "",
-          platform: profile.platform || "",
-          handle: profile.socialHandle || "",
-          photo: profile.avatarUrl || "",
-          followers: profile.followersCount,
-          engagementRate: profile.engagementRate,
-          niches: profile.niches || [],
-          promotionTypes: profile.promotionTypes || [],
+          ...profile,
           rating: 0,
           reviewCount: 0,
         });
@@ -54,28 +49,32 @@ export function CreatorDashboard() {
             getReviews(user.id).catch(() => []),
             listRequirements({ status: "open" }).catch(() => []),
           ]);
-          setCreator((prev: any) => ({
+
+          setCreator((prev) => ({
             ...prev,
-            rating: (ratingsData as any).avgRating || 0,
-            reviewCount: (ratingsData as any).ratingCount || 0,
+            rating: ratingsData.avgRating || 0,
+            reviewCount: ratingsData.ratingCount || 0,
           }));
-          setReviews(Array.isArray(reviewsData) ? reviewsData.map((r: any) => ({
+
+          setReviews(Array.isArray(reviewsData) ? reviewsData.map((r) => ({
             id: r.id,
             reviewerName: r.fromUserId || "User",
             rating: 0,
             comment: r.content,
             date: r.createdAt,
           })) : []);
-          setMatchingRequirements(Array.isArray(reqs) ? reqs.map((r: any) => ({
+
+          setMatchingRequirements(Array.isArray(reqs) ? reqs.map((r) => ({
             id: r.id,
             title: r.title,
             brand: r.brandId,
             niches: r.niches || [],
             budget: r.budgetMin && r.budgetMax ? `$${r.budgetMin} - $${r.budgetMax}` : "TBD",
+            description: r.description || "",
             status: "Open",
           })) : []);
         }
-      } catch (err: any) {
+      } catch (err) {
         setError(err?.message || "Failed to load dashboard data");
       } finally {
         setLoading(false);
@@ -126,7 +125,7 @@ export function CreatorDashboard() {
         </div>
       ) : (
         <>
-          {activeSection === "overview" && <OverviewSection creator={creator} reviews={reviews} matchingRequirements={matchingRequirements} />}
+          {activeSection === "overview" && <OverviewSection creator={creator} setCreator={setCreator} reviews={reviews} matchingRequirements={matchingRequirements} />}
           {activeSection === "profile" && <ProfileSection creator={creator} setCreator={setCreator} />}
           {activeSection === "requirements" && <RequirementsSection matchingRequirements={matchingRequirements} />}
           {activeSection === "ratings" && <RatingsSection creator={creator} reviews={reviews} />}
@@ -137,11 +136,85 @@ export function CreatorDashboard() {
   );
 }
 
-function OverviewSection({ creator, reviews, matchingRequirements }: { creator: any; reviews: any[]; matchingRequirements: any[] }) {
+function OverviewSection({ creator, setCreator, reviews, matchingRequirements }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    followersCount: creator.followersCount || 0,
+    engagementRate: creator.engagementRate || 0,
+  });
+
+  function startEditing() {
+    setEditForm({
+      followersCount: creator.followersCount || 0,
+      engagementRate: creator.engagementRate || 0,
+    });
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+  }
+
+  async function handleSaveMetrics() {
+    setSaving(true);
+    try {
+      const updated = await upsertCreatorProfile({
+        displayName: creator.displayName,
+        followersCount: Number(editForm.followersCount),
+        engagementRate: Number(editForm.engagementRate),
+      });
+      if (updated) {
+        setCreator((prev) => ({ ...prev, ...updated }));
+      }
+      setEditing(false);
+    } catch (err) {
+      console.error("Failed to save metrics:", err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Stat Cards */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-[#0A1628]" style={{ fontWeight: 600, fontSize: '1rem' }}>Your Stats</h3>
+        {!editing ? (
+          <button
+            onClick={startEditing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[#2563EB] border border-[#2563EB]/30 rounded-lg hover:bg-[#EEF2FF] transition-colors"
+            style={{ fontSize: '0.8125rem', fontWeight: 500 }}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit Stats
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={cancelEditing}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              style={{ fontSize: '0.8125rem', fontWeight: 500 }}
+            >
+              <X className="w-3.5 h-3.5" />
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveMetrics}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+              style={{ fontSize: '0.8125rem', fontWeight: 500 }}
+            >
+              <Save className="w-3.5 h-3.5" />
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Followers Card */}
         <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-muted-foreground" style={{ fontSize: '0.8125rem' }}>Followers</span>
@@ -149,9 +222,27 @@ function OverviewSection({ creator, reviews, matchingRequirements }: { creator: 
               <Users className="w-4 h-4 text-[#2563EB]" />
             </div>
           </div>
-          <div className="text-[#0A1628]" style={{ fontSize: '1.5rem', fontWeight: 700 }}>{creator.followers ? `${(creator.followers / 1000).toFixed(0)}K` : "—"}</div>
-          <div className="text-[#059669] mt-1" style={{ fontSize: '0.75rem', fontWeight: 500 }}>+2.3% this month</div>
+          {editing ? (
+            <input
+              type="number"
+              min="0"
+              value={editForm.followersCount}
+              onChange={(e) => setEditForm((f) => ({ ...f, followersCount: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg border border-[#2563EB]/30 bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] text-[#0A1628]"
+              style={{ fontSize: '1.125rem', fontWeight: 600 }}
+              placeholder="e.g. 50000"
+            />
+          ) : (
+            <>
+              <div className="text-[#0A1628]" style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {creator.followersCount ? creator.followersCount.toLocaleString() : "—"}
+              </div>
+              <div className="text-muted-foreground mt-1" style={{ fontSize: '0.75rem' }}>Total followers</div>
+            </>
+          )}
         </div>
+
+        {/* Engagement Rate Card */}
         <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-muted-foreground" style={{ fontSize: '0.8125rem' }}>Engagement Rate</span>
@@ -159,9 +250,32 @@ function OverviewSection({ creator, reviews, matchingRequirements }: { creator: 
               <TrendingUp className="w-4 h-4 text-[#059669]" />
             </div>
           </div>
-          <div className="text-[#0A1628]" style={{ fontSize: '1.5rem', fontWeight: 700 }}>{creator.engagementRate ? `${creator.engagementRate}%` : "—"}</div>
-          <div className="text-[#059669] mt-1" style={{ fontSize: '0.75rem', fontWeight: 500 }}>+0.5% this month</div>
+          {editing ? (
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={editForm.engagementRate}
+                onChange={(e) => setEditForm((f) => ({ ...f, engagementRate: e.target.value }))}
+                className="w-full px-3 py-2 pr-8 rounded-lg border border-[#059669]/30 bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] text-[#0A1628]"
+                style={{ fontSize: '1.125rem', fontWeight: 600 }}
+                placeholder="e.g. 4.5"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" style={{ fontSize: '0.875rem' }}>%</span>
+            </div>
+          ) : (
+            <>
+              <div className="text-[#0A1628]" style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {creator.engagementRate ? `${creator.engagementRate}%` : "—"}
+              </div>
+              <div className="text-muted-foreground mt-1" style={{ fontSize: '0.75rem' }}>Average engagement</div>
+            </>
+          )}
         </div>
+
+        {/* Profile Views Card (read-only) */}
         <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-muted-foreground" style={{ fontSize: '0.8125rem' }}>Profile Views</span>
@@ -170,8 +284,10 @@ function OverviewSection({ creator, reviews, matchingRequirements }: { creator: 
             </div>
           </div>
           <div className="text-[#0A1628]" style={{ fontSize: '1.5rem', fontWeight: 700 }}>1,847</div>
-          <div className="text-[#059669] mt-1" style={{ fontSize: '0.75rem', fontWeight: 500 }}>+12% this month</div>
+          <div className="text-muted-foreground mt-1" style={{ fontSize: '0.75rem' }}>Last 30 days</div>
         </div>
+
+        {/* Avg Rating Card (read-only) */}
         <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-muted-foreground" style={{ fontSize: '0.8125rem' }}>Avg Rating</span>
@@ -238,26 +354,30 @@ function OverviewSection({ creator, reviews, matchingRequirements }: { creator: 
   );
 }
 
-function ProfileSection({ creator, setCreator }: { creator: any; setCreator: React.Dispatch<React.SetStateAction<any>> }) {
+/* ── Profile Section ── */
+function ProfileSection({ creator, setCreator }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    name: creator.name || "",
+    displayName: creator.displayName || "",
     bio: creator.bio || "",
     platform: creator.platform || "Instagram",
-    handle: creator.handle || "",
+    socialHandle: creator.socialHandle || "",
+    avatarUrl: creator.avatarUrl || "",
   });
 
   async function handleSave() {
     setSaving(true);
     try {
-      await upsertCreatorProfile({
-        displayName: form.name,
-        bio: form.bio,
-        platform: form.platform.toLowerCase() as any,
-        socialHandle: form.handle,
-      });
-      setCreator((prev: any) => ({ ...prev, ...form }));
-    } catch { /* ignore */ } finally {
+      const updated = await upsertCreatorProfile(form);
+      if (updated) {
+        setCreator((prev) => ({
+          ...prev,
+          ...updated,
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setSaving(false);
     }
   }
@@ -265,43 +385,89 @@ function ProfileSection({ creator, setCreator }: { creator: any; setCreator: Rea
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
-        <h3 className="text-[#0A1628] mb-5" style={{ fontWeight: 600 }}>Profile Information</h3>
+        <h3 className="text-[#0A1628] mb-5" style={{ fontWeight: 600 }}>
+          Profile Information
+        </h3>
+
+        {/* Avatar */}
         <div className="flex items-center gap-4 mb-6">
           <ImageWithFallback
-            src={creator.photo}
-            alt={creator.name}
+            src={form.avatarUrl || creator.avatarUrl}
+            alt={form.displayName}
             className="w-20 h-20 rounded-full object-cover"
           />
-          <div>
-            <button className="px-4 py-2 border border-border rounded-lg text-[#0A1628] hover:bg-gray-50 transition-colors" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-              Change Photo
-            </button>
-          </div>
         </div>
+
+        {/* Avatar URL Input */}
+        <div className="mb-6">
+          <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+            Avatar URL
+          </label>
+          <input
+            type="text"
+            placeholder="https://example.com/avatar.jpg"
+            value={form.avatarUrl}
+            onChange={(e) => setForm((f) => ({ ...f, avatarUrl: e.target.value }))}
+            className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+          />
+        </div>
+
+        {/* Display Name */}
         <div className="space-y-4">
           <div>
-            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Display Name</label>
-            <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+              Display Name
+            </label>
+            <input
+              value={form.displayName}
+              onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+            />
           </div>
+
+          {/* Bio */}
           <div>
-            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Bio</label>
-            <textarea value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} rows={3} className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none" />
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Bio</label>
+            <textarea
+              value={form.bio}
+              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none"
+            />
           </div>
+
+          {/* Platform + Handle */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Platform</label>
-              <select value={form.platform} onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]">
+              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Platform</label>
+              <select
+                value={form.platform}
+                onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+              >
                 <option>Instagram</option>
                 <option>YouTube</option>
                 <option>TikTok</option>
               </select>
             </div>
+
             <div>
-              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Handle</label>
-              <input value={form.handle} onChange={(e) => setForm((f) => ({ ...f, handle: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
+              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Handle</label>
+              <input
+                value={form.socialHandle}
+                onChange={(e) => setForm((f) => ({ ...f, socialHandle: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+              />
             </div>
           </div>
-          <button onClick={handleSave} disabled={saving} className="w-full sm:w-auto px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50" style={{ fontWeight: 500 }}>
+
+          {/* Save */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full sm:w-auto px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+            style={{ fontWeight: 500 }}
+          >
             {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
@@ -310,7 +476,8 @@ function ProfileSection({ creator, setCreator }: { creator: any; setCreator: Rea
   );
 }
 
-function RequirementsSection({ matchingRequirements }: { matchingRequirements: any[] }) {
+/* ── Requirements Section ── */
+function RequirementsSection({ matchingRequirements }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
@@ -330,7 +497,7 @@ function RequirementsSection({ matchingRequirements }: { matchingRequirements: a
           <p className="text-[#2563EB] mb-2" style={{ fontSize: '0.875rem', fontWeight: 500 }}>{req.brand}</p>
           <p className="text-muted-foreground mb-3" style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>{req.description}</p>
           <div className="flex flex-wrap gap-2 mb-3">
-            {req.niches.map((niche: string) => (
+            {req.niches.map((niche) => (
               <span key={niche} className="px-2.5 py-0.5 bg-[#EEF2FF] text-[#2563EB] rounded-full" style={{ fontSize: '0.75rem' }}>{niche}</span>
             ))}
           </div>
@@ -346,7 +513,8 @@ function RequirementsSection({ matchingRequirements }: { matchingRequirements: a
   );
 }
 
-function RatingsSection({ creator, reviews }: { creator: any; reviews: any[] }) {
+/* ── Ratings Section ── */
+function RatingsSection({ creator, reviews }) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
@@ -382,7 +550,8 @@ function RatingsSection({ creator, reviews }: { creator: any; reviews: any[] }) 
   );
 }
 
-function SettingsSection({ email }: { email: string }) {
+/* ── Settings Section ── */
+function SettingsSection({ email }) {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
@@ -399,28 +568,6 @@ function SettingsSection({ email }: { email: string }) {
           <button className="w-full sm:w-auto px-6 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500 }}>
             Update Settings
           </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
-        <h3 className="text-[#0A1628] mb-5" style={{ fontWeight: 600 }}>Notification Preferences</h3>
-        <div className="space-y-4">
-          {[
-            { label: "New campaign matches", desc: "Get notified when a new campaign matches your profile" },
-            { label: "New reviews", desc: "Get notified when someone leaves a review" },
-            { label: "Proposal updates", desc: "Get notified about proposal status changes" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-2">
-              <div>
-                <div className="text-[#0A1628]" style={{ fontWeight: 500, fontSize: '0.875rem' }}>{item.label}</div>
-                <div className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>{item.desc}</div>
-              </div>
-              <label className="relative inline-flex cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-[#2563EB] transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
-              </label>
-            </div>
-          ))}
         </div>
       </div>
     </div>

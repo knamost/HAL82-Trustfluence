@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 import { Eye, EyeOff, Shield, Users, BarChart3, Star } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
-import { login as loginApi, register as registerApi } from "../../lib/auth.service";
-import { ApiError } from "../../lib/api-client";
+import { login as loginApi, register as registerApi } from "../../api/auth.api";
+import { ApiError } from "../../api/index";
 
 export function AuthPage() {
   const navigate = useNavigate();

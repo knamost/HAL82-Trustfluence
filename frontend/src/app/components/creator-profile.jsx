@@ -1,8 +1,8 @@
 import { useParams, Link } from "react-router";
 import { useState, useEffect } from "react";
 import { Star, Users, TrendingUp, Instagram, Youtube, MessageCircle, ExternalLink, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { getCreator } from "../../lib/creators.service";
-import { getReviews, getRatings } from "../../lib/feedback.service";
+import { getCreator } from "../../api/creator.api";
+import { getReviews, getRatings } from "../../api/feedback.api";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 

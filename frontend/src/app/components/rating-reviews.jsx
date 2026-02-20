@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Send } from "lucide-react";
 import { StarRatingInput } from "./star-rating";
 import { useAuth } from "../context/auth-context";
-import { submitRating, submitReview } from "../../lib/feedback.service";
+import { submitRating, submitReview } from "../../api/feedback.api";
 
 export function RatingReviews() {
   const { isAuthenticated } = useAuth();

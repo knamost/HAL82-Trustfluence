@@ -4,9 +4,9 @@ import {
   Building2, TrendingUp, Star, Briefcase,
   Settings, ChevronRight, BarChart3, Loader2, Plus, Trash2, Pause, Play, AlertCircle
 } from "lucide-react";
-import { getMyBrandProfile, upsertBrandProfile, type BrandProfile } from "../../lib/brands.service";
-import { listRequirements, createRequirement, updateRequirement, deleteRequirement } from "../../lib/requirements.service";
-import { getRatings, getReviews } from "../../lib/feedback.service";
+import { getMyBrandProfile, upsertBrandProfile } from "../../api/brand.api";
+import { listRequirements, createRequirement, updateRequirement, deleteRequirement } from "../../api/requirement.api";
+import { getRatings, getReviews } from "../../api/feedback.api";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
@@ -23,9 +23,9 @@ const sections = [
 export function BrandDashboard() {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("overview");
-  const [brand, setBrand] = useState<any>({ name: "My Brand", category: "", logo: "" });
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [myRequirements, setMyRequirements] = useState<any[]>([]);
+  const [brand, setBrand] = useState({ name: "My Brand", category: "", logo: "" });
+  const [reviews, setReviews] = useState([]);
+  const [myRequirements, setMyRequirements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -50,14 +50,14 @@ export function BrandDashboard() {
             getReviews(user.id).catch(() => []),
             listRequirements().catch(() => []),
           ]);
-          setBrand((prev: any) => ({
+          setBrand((prev) => ({
             ...prev,
-            rating: (ratingsData as any).avgRating || 0,
-            reviewCount: (ratingsData as any).ratingCount || 0,
+            rating: ratingsData.avgRating || 0,
+            reviewCount: ratingsData.ratingCount || 0,
           }));
           setReviews(
             Array.isArray(reviewsData)
-              ? reviewsData.map((r: any) => ({
+              ? reviewsData.map((r) => ({
                   id: r.id,
                   reviewerName: r.fromUserId || "User",
                   rating: 0,
@@ -68,8 +68,8 @@ export function BrandDashboard() {
           );
           const brandReqs = Array.isArray(reqs)
             ? reqs
-                .filter((r: any) => r.brandId === user.id)
-                .map((r: any) => ({
+                .filter((r) => r.brandId === user.id)
+                .map((r) => ({
                   id: r.id,
                   title: r.title,
                   description: r.description || "",
@@ -87,7 +87,7 @@ export function BrandDashboard() {
             : [];
           setMyRequirements(brandReqs);
         }
-      } catch (err: any) {
+      } catch (err) {
         setError(err?.message || "Failed to load dashboard data");
       } finally {
         setLoading(false);
@@ -148,15 +148,7 @@ export function BrandDashboard() {
 }
 
 /* ──────────────────────────── OVERVIEW ──────────────────────────── */
-function OverviewSection({
-  brand,
-  reviews,
-  myRequirements,
-}: {
-  brand: any;
-  reviews: any[];
-  myRequirements: any[];
-}) {
+function OverviewSection({ brand, reviews, myRequirements }) {
   const openCampaigns = myRequirements.filter((r) => r.status === "open").length;
   return (
     <div className="space-y-6">
@@ -233,9 +225,9 @@ function OverviewSection({
 }
 
 /* ──────────────────────────── PROFILE ──────────────────────────── */
-function ProfileSection({ brand, setBrand }: { brand: any; setBrand: React.Dispatch<React.SetStateAction<any>> }) {
+function ProfileSection({ brand, setBrand }) {
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [msg, setMsg] = useState(null);
   const [form, setForm] = useState({
     name: brand.name || "",
     bio: brand.bio || "",
@@ -259,7 +251,7 @@ function ProfileSection({ brand, setBrand }: { brand: any; setBrand: React.Dispa
         website: form.website || undefined,
         category: form.category || undefined,
       });
-      setBrand((prev: any) => ({
+      setBrand((prev) => ({
         ...prev,
         name: updated.companyName,
         bio: updated.bio || "",
@@ -268,10 +260,10 @@ function ProfileSection({ brand, setBrand }: { brand: any; setBrand: React.Dispa
         category: updated.category || "",
       }));
       setMsg({ type: "success", text: "Brand profile updated successfully!" });
-    } catch (err: any) {
+    } catch (err) {
       const text =
         err?.response?.data?.message ||
-        err?.response?.data?.errors?.map((e: any) => e.message).join(", ") ||
+        err?.response?.data?.errors?.map((e) => e.message).join(", ") ||
         err?.message ||
         "Failed to update profile. Please check your inputs.";
       setMsg({ type: "error", text });
@@ -336,7 +328,7 @@ function ProfileSection({ brand, setBrand }: { brand: any; setBrand: React.Dispa
               className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none"
             />
           </div>
- 
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>
@@ -372,7 +364,6 @@ function ProfileSection({ brand, setBrand }: { brand: any; setBrand: React.Dispa
               />
             </div>
           </div>
-          
 
           <button
             onClick={handleSave}
@@ -389,13 +380,7 @@ function ProfileSection({ brand, setBrand }: { brand: any; setBrand: React.Dispa
 }
 
 /* ──────────────────────────── CAMPAIGNS / REQUIREMENTS ──────────────────────────── */
-function RequirementsSection({
-  myRequirements,
-  setMyRequirements,
-}: {
-  myRequirements: any[];
-  setMyRequirements: React.Dispatch<React.SetStateAction<any[]>>;
-}) {
+function RequirementsSection({ myRequirements, setMyRequirements }) {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
@@ -415,7 +400,7 @@ function RequirementsSection({
       const req = await createRequirement({
         title: form.title,
         description: form.description || undefined,
-        niches: form.niches ? form.niches.split(",").map((n: string) => n.trim()) : undefined,
+        niches: form.niches ? form.niches.split(",").map((n) => n.trim()) : undefined,
         minFollowers: form.minFollowers ? Number(form.minFollowers) : undefined,
         minEngagementRate: form.minEngagementRate ? Number(form.minEngagementRate) : undefined,
         budgetMin: form.budgetMin ? Number(form.budgetMin) : undefined,
@@ -445,7 +430,7 @@ function RequirementsSection({
     }
   }
 
-  async function handleToggleStatus(req: any) {
+  async function handleToggleStatus(req) {
     const newStatus = req.status === "open" ? "paused" : "open";
     try {
       await updateRequirement(req.id, { status: newStatus });
@@ -455,7 +440,7 @@ function RequirementsSection({
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id) {
     try {
       await deleteRequirement(id);
       setMyRequirements((prev) => prev.filter((r) => r.id !== id));
@@ -545,7 +530,7 @@ function RequirementsSection({
             <p className="text-muted-foreground mb-3" style={{ fontSize: "0.875rem", lineHeight: 1.6 }}>{req.description}</p>
           )}
           <div className="flex flex-wrap gap-2 mb-3">
-            {(req.niches || []).map((niche: string) => (
+            {(req.niches || []).map((niche) => (
               <span key={niche} className="px-2.5 py-0.5 bg-[#EEF2FF] text-[#2563EB] rounded-full" style={{ fontSize: "0.75rem" }}>
                 {niche}
               </span>
@@ -577,7 +562,7 @@ function RequirementsSection({
 }
 
 /* ──────────────────────────── RATINGS ──────────────────────────── */
-function RatingsSection({ brand, reviews }: { brand: any; reviews: any[] }) {
+function RatingsSection({ brand, reviews }) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
@@ -617,7 +602,7 @@ function RatingsSection({ brand, reviews }: { brand: any; reviews: any[] }) {
 }
 
 /* ──────────────────────────── SETTINGS ──────────────────────────── */
-function SettingsSection({ email }: { email: string }) {
+function SettingsSection({ email }) {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
@@ -663,8 +648,8 @@ function SettingsSection({ email }: { email: string }) {
 }
 
 /* ──────────────────────────── HELPERS ──────────────────────────── */
-function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: string; icon: any; color: string; sub: string }) {
-  const colors: Record<string, { bg: string; text: string }> = {
+function StatCard({ label, value, icon: Icon, color, sub }) {
+  const colors = {
     blue: { bg: "bg-[#EEF2FF]", text: "text-[#2563EB]" },
     green: { bg: "bg-[#ECFDF5]", text: "text-[#059669]" },
     yellow: { bg: "bg-[#FFFBEB]", text: "text-yellow-500" },
@@ -685,8 +670,8 @@ function StatCard({ label, value, icon: Icon, color, sub }: { label: string; val
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { bg: string; text: string; label: string }> = {
+function StatusBadge({ status }) {
+  const map = {
     open: { bg: "bg-[#ECFDF5]", text: "text-[#059669]", label: "Open" },
     paused: { bg: "bg-[#FFFBEB]", text: "text-[#D97706]", label: "Paused" },
     closed: { bg: "bg-gray-100", text: "text-gray-500", label: "Closed" },

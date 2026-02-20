@@ -1,49 +1,19 @@
 import { useParams, Link } from "react-router";
 import { useState, useEffect } from "react";
 import { ArrowLeft, ShieldCheck, Globe, Tag, Loader2, AlertCircle } from "lucide-react";
-import { getBrand } from "../../lib/brands.service";
-import { getReviews, getRatings, type Review, type RatingsSummary } from "../../lib/feedback.service";
-import { listRequirements, type Requirement } from "../../lib/requirements.service";
+import { getBrand } from "../../api/brand.api";
+import { getReviews, getRatings } from "../../api/feedback.api";
+import { listRequirements } from "../../api/requirement.api";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-
-interface BrandView {
-  name: string;
-  logo: string;
-  website: string;
-  category: string;
-  description: string;
-  rating: number;
-  reviewCount: number;
-  trustScore: number;
-}
-
-interface ReqView {
-  id: string;
-  title: string;
-  description: string;
-  niches: string[];
-  minFollowers: number | null;
-  minEngagement: number | null;
-  budget: string;
-  status: string;
-}
-
-interface ReviewView {
-  id: string;
-  reviewerName: string;
-  rating: number;
-  comment: string;
-  date: string;
-}
 
 export function BrandProfile() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [brand, setBrand] = useState<BrandView | null>(null);
-  const [openReqs, setOpenReqs] = useState<ReqView[]>([]);
-  const [reviews, setReviews] = useState<ReviewView[]>([]);
+  const [brand, setBrand] = useState(null);
+  const [openReqs, setOpenReqs] = useState([]);
+  const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
     async function load() {
@@ -51,12 +21,12 @@ export function BrandProfile() {
       setError("");
       try {
         const [profile, ratingsData, reviewsData, reqs] = await Promise.all([
-          getBrand(id!),
-          getRatings(id!).catch(() => ({ ratings: [], avgRating: 0, ratingCount: 0 })),
-          getReviews(id!).catch(() => []),
+          getBrand(id),
+          getRatings(id).catch(() => ({ ratings: [], avgRating: 0, ratingCount: 0 })),
+          getReviews(id).catch(() => []),
           listRequirements({ status: "open" }).catch(() => []),
         ]);
-        const rInfo = ratingsData as RatingsSummary;
+        const rInfo = ratingsData;
         setBrand({
           name: profile.companyName,
           logo: profile.logoUrl || "",
@@ -67,7 +37,7 @@ export function BrandProfile() {
           reviewCount: rInfo.ratingCount || 0,
           trustScore: Math.round((rInfo.avgRating || 0) * 20),
         });
-        setOpenReqs((reqs as Requirement[]).filter((r) => r.brandId === profile.userId).map((r) => ({
+        setOpenReqs(reqs.filter((r) => r.brandId === profile.userId).map((r) => ({
           id: r.id,
           title: r.title,
           description: r.description || "",
@@ -77,14 +47,14 @@ export function BrandProfile() {
           budget: r.budgetMin && r.budgetMax ? `$${r.budgetMin.toLocaleString()} - $${r.budgetMax.toLocaleString()}` : "TBD",
           status: r.status,
         })));
-        setReviews((reviewsData as Review[]).map((r) => ({
+        setReviews(reviewsData.map((r) => ({
           id: r.id,
           reviewerName: r.fromUserId,
           rating: 0,
           comment: r.content,
           date: r.createdAt,
         })));
-      } catch (err: any) {
+      } catch (err) {
         setError(err?.message || "Failed to load brand profile");
       } finally {
         setLoading(false);

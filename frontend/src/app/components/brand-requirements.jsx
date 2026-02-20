@@ -1,20 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, Plus, DollarSign, Users, TrendingUp, Briefcase } from "lucide-react";
-import { listRequirements, createRequirement, type Requirement } from "../../lib/requirements.service";
+import { listRequirements, createRequirement } from "../../api/requirement.api";
 import { useAuth } from "../context/auth-context";
-import { COMMON_NICHES } from "../../lib/constants";
-
-interface ReqView {
-  id: string;
-  title: string;
-  description: string;
-  brand: string;
-  niches: string[];
-  minFollowers: number | null;
-  minEngagement: number | null;
-  budget: string;
-  status: string;
-}
+import { COMMON_NICHES } from "../../api/constants";
 
 export function BrandRequirements() {
   const { isBrand } = useAuth();
@@ -22,7 +10,7 @@ export function BrandRequirements() {
   const [minFollowers, setMinFollowers] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [reqs, setReqs] = useState<ReqView[]>([]);
+  const [reqs, setReqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
@@ -55,7 +43,7 @@ export function BrandRequirements() {
         budget: r.budgetMin && r.budgetMax ? `$${r.budgetMin.toLocaleString()} - $${r.budgetMax.toLocaleString()}` : "TBD",
         status: r.status === "open" ? "Open" : r.status === "closed" ? "Closed" : "Paused",
       })));
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.message || "Failed to load campaigns");
     } finally {
       setLoading(false);
@@ -66,7 +54,7 @@ export function BrandRequirements() {
     fetchReqs();
   }, [fetchReqs]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
     if (!formTitle.trim()) return;
     setCreateLoading(true);

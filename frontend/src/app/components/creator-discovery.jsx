@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { Search, Star, Users, TrendingUp, Filter, X, Loader2, AlertCircle } from "lucide-react";
-import { listCreators } from "../../lib/creators.service";
-import { COMMON_NICHES, PLATFORMS } from "../../lib/constants";
+import { listCreators } from "../../api/creator.api";
+import { COMMON_NICHES, PLATFORMS } from "../../api/constants";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 export function CreatorDiscovery() {

@@ -11,13 +11,11 @@ import {
   getAdminStats,
   listUsers,
   deleteUser,
-  type AdminStats,
-  type AdminUser,
-} from "../../lib/admin.service";
+} from "../../api/admin.api";
 
 export function AdminDashboard() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState(null);
+  const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState("");
@@ -57,13 +55,13 @@ export function AdminDashboard() {
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  function handleSearch(e: React.FormEvent) {
+  function handleSearch(e) {
     e.preventDefault();
     setPage(1);
     setSearch(searchInput);
   }
 
-  async function handleDelete(userId: string) {
+  async function handleDelete(userId) {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await deleteUser(userId);
@@ -219,7 +217,7 @@ export function AdminDashboard() {
 
 /* ── Helpers ── */
 
-const colorMap: Record<string, { bg: string; text: string }> = {
+const colorMap = {
   blue: { bg: "bg-blue-50", text: "text-blue-600" },
   indigo: { bg: "bg-indigo-50", text: "text-indigo-600" },
   emerald: { bg: "bg-emerald-50", text: "text-emerald-600" },
@@ -228,17 +226,7 @@ const colorMap: Record<string, { bg: string; text: string }> = {
   rose: { bg: "bg-rose-50", text: "text-rose-600" },
 };
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-}: {
-  label: string;
-  value: number | undefined;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  color: string;
-}) {
+function StatCard({ label, value, icon: Icon, color }) {
   const c = colorMap[color] || colorMap.blue;
   return (
     <div className="bg-white rounded-2xl border border-border p-5 shadow-sm">
@@ -255,8 +243,8 @@ function StatCard({
   );
 }
 
-function RoleBadge({ role }: { role: string }) {
-  const styles: Record<string, string> = {
+function RoleBadge({ role }) {
+  const styles = {
     creator: "bg-blue-50 text-blue-600",
     brand: "bg-emerald-50 text-emerald-600",
     admin: "bg-purple-50 text-purple-600",

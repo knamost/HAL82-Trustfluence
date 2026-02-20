@@ -3,8 +3,8 @@
  * Wraps the entire app so any component can access auth state.
  */
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { getMe, logout as logoutService } from "../../lib/auth.service";
-import { getToken, removeToken } from "../../lib/api-client";
+import { getMe, logout as logoutService } from "../../api/auth.api";
+import { getToken, removeToken } from "../../api/index";
 
 const AuthContext = createContext(undefined);
 
