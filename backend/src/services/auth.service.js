@@ -27,7 +27,7 @@ import { AppError } from '../utils/AppError.js';
  * @returns {{ user: Object, token: string }}
  * @throws {AppError} 409 if email is already registered
  */
-export async function registerUser({ email, password, role }) {
+export async function registerUser({ first_name, last_name, email, password, role }) {
   // Check if email already taken
   const existing = await db
     .select({ id: users.id })
@@ -44,11 +44,19 @@ export async function registerUser({ email, password, role }) {
   const [user] = await db
     .insert(users)
     .values({
+      firstName: first_name || null,
+      lastName: last_name || null,
       email: email.toLowerCase(),
       password: hashedPassword,
       role,
     })
-    .returning({ id: users.id, email: users.email, role: users.role });
+    .returning({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      role: users.role,
+    });
 
   const token = signToken({ id: user.id, email: user.email, role: user.role });
   return { user, token };
@@ -77,7 +85,7 @@ export async function loginUser({ email, password }) {
 
   const token = signToken({ id: user.id, email: user.email, role: user.role });
   return {
-    user: { id: user.id, email: user.email, role: user.role },
+    user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role },
     token,
   };
 }
@@ -93,6 +101,8 @@ export async function getMe(userId) {
   const [user] = await db
     .select({
       id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
       email: users.email,
       role: users.role,
       createdAt: users.createdAt,

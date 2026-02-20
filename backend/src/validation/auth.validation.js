@@ -20,6 +20,8 @@ import { z } from 'zod/v4';
  * to an invite-only flow or a seeded super-admin account.
  */
 export const registerSchema = z.object({
+  first_name: z.string().min(1, 'First name is required').optional(),
+  last_name: z.string().min(1, 'Last name is required').optional(),
   email: z.string().email('Invalid email format').transform((v) => v.toLowerCase()),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   role: z.enum(['creator', 'brand', 'admin']),
