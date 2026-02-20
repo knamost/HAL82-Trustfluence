@@ -1,0 +1,43 @@
+/**
+ * @file routes/requirements.js
+ * @description Campaign requirement routes.
+ *
+ * GET    /requirements      — list & filter   (public)
+ * POST   /requirements      — create          (brand only, validated)
+ * GET    /requirements/:id  — single          (public)
+ * PUT    /requirements/:id  — update          (brand owner, validated)
+ * DELETE /requirements/:id  — delete          (brand owner)
+ */
+
+import { Router } from 'express';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { authenticate, authorize } from '../middlewares/auth.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
+import { createRequirementSchema, updateRequirementSchema } from '../validation/requirement.validation.js';
+import * as reqCtrl from '../controllers/requirement.controller.js';
+
+const router = Router();
+
+router.get('/', asyncHandler(reqCtrl.list));
+
+router.post(
+  '/',
+  authenticate,
+  authorize('brand'),
+  validate(createRequirementSchema),
+  asyncHandler(reqCtrl.create),
+);
+
+router.get('/:id', asyncHandler(reqCtrl.getById));
+
+router.put(
+  '/:id',
+  authenticate,
+  authorize('brand'),
+  validate(updateRequirementSchema),
+  asyncHandler(reqCtrl.update),
+);
+
+router.delete('/:id', authenticate, authorize('brand'), asyncHandler(reqCtrl.remove));
+
+export default router;
