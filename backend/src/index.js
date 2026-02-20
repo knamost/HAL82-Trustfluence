@@ -22,6 +22,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
+import { ensureIndexes } from './db/indexes.js';
 
 // ── Route modules ────────────────────────────────────────────────────────────
 import authRouter from './routes/auth.route.js';
@@ -30,12 +31,23 @@ import brandsRouter from './routes/brands.route.js';
 import requirementsRouter from './routes/requirements.route.js';
 import feedbackRouter from './routes/feedback.route.js';
 import socialRouter from './routes/social.route.js';
+import adminRouter from './routes/admin.route.js';
 
 const app = express();
 const PORT = process.env.PORT ?? 8000;
 
 // --- Middlewares ---
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman) and any localhost port
+    if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 // --- Routes ---
@@ -49,9 +61,13 @@ app.use('/brands', brandsRouter);
 app.use('/requirements', requirementsRouter);
 app.use('/feedback', feedbackRouter);
 app.use('/social', socialRouter);
+app.use('/admin', adminRouter);
 
 // --- Error handler (must be last) ---
 app.use(errorHandler);
 
 // --- Start ---
-app.listen(PORT, () => console.log(`Server is listening on port: ${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`Server is listening on port: ${PORT}`);
+  await ensureIndexes();
+});

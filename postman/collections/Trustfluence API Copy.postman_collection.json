@@ -1,0 +1,792 @@
+{
+  "info": {
+    "_postman_id": "ac8fe999-6213-4c87-ab77-0666afe47743",
+    "name": "Trustfluence API Copy",
+    "description": "API collection for the Trustfluence platform - connecting creators and brands.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "id": "53e6c886-7184-4628-926b-92f48063d43e",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "description": "Check if the API server is running."
+          },
+          "response": []
+        }
+      ],
+      "id": "96b4b413-29c5-4bf9-b89b-cb4366ff0994"
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "id": "790e9096-9849-436d-ad2b-5d4d55beabb5",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\t\"email\": \"creator@example.com\",\n\t\"password\": \"securepassword123\",\n\t\"role\": \"creator\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user account."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "id": "a8a1d57c-826e-4f89-977e-33148b10617d",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\t\"email\": \"user@example.com\",\n\t\"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login and receive an authentication token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "id": "7ba5a8ac-87f0-4c01-a68e-99425da56cb2",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Get the currently authenticated user's information."
+          },
+          "response": []
+        }
+      ],
+      "id": "fbd418fb-9811-4a8a-816e-0a1aa2f3c779"
+    },
+    {
+      "name": "Creators",
+      "item": [
+        {
+          "name": "List Creators",
+          "id": "76b37934-7a2e-4fb6-ac12-656368053685",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/creators?niche=&minFollowers=&minEngagement=&search=&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creators"
+              ],
+              "query": [
+                {
+                  "key": "niche",
+                  "value": "",
+                  "description": "Filter by niche"
+                },
+                {
+                  "key": "minFollowers",
+                  "value": "",
+                  "description": "Minimum followers count"
+                },
+                {
+                  "key": "minEngagement",
+                  "value": "",
+                  "description": "Minimum engagement rate"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page"
+                }
+              ]
+            },
+            "description": "List all creators with optional filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Own Creator Profile",
+          "id": "c7a4d406-0718-464c-9aa8-3c15c5cd2fd1",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/creators/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creators",
+                "profile"
+              ]
+            },
+            "description": "Get the authenticated creator's own profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Creator Profile",
+          "id": "edb1f0ca-9ec6-4e11-bae4-ac54d63f8d8b",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\t\"displayName\": \"Jane Creator\",\n\t\"bio\": \"Content creator\",\n\t\"avatarUrl\": \"https://example.com/avatar.jpg\",\n\t\"platform\": \"instagram\",\n\t\"socialHandle\": \"janecreator\",\n\t\"followersCount\": 50000,\n\t\"engagementRate\": 4.5,\n\t\"niches\": [\"tech\", \"lifestyle\"],\n\t\"promotionTypes\": [\"post\", \"story\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/creators/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creators",
+                "profile"
+              ]
+            },
+            "description": "Update the authenticated creator's profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Creator by ID",
+          "id": "765e8038-1207-45f2-824c-6342d28bde1b",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/creators/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creators",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Creator ID"
+                }
+              ]
+            },
+            "description": "Get a specific creator's profile by ID."
+          },
+          "response": []
+        }
+      ],
+      "id": "3fa67109-6f4a-4511-8ab5-40126fe21391"
+    },
+    {
+      "name": "Brands",
+      "item": [
+        {
+          "name": "List Brands",
+          "id": "c6b9f991-6920-414d-b78a-a43e34840bf5",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brands?category=&minRating=&search=&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "brands"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "",
+                  "description": "Filter by category"
+                },
+                {
+                  "key": "minRating",
+                  "value": "",
+                  "description": "Minimum rating"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page"
+                }
+              ]
+            },
+            "description": "List all brands with optional filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Own Brand Profile",
+          "id": "1ba4aaa5-bc64-4e5e-9956-880ece521643",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brands/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "brands",
+                "profile"
+              ]
+            },
+            "description": "Get the authenticated brand's own profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Brand Profile",
+          "id": "00f63891-e9d3-4726-bab7-f37379f52214",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\t\"companyName\": \"Acme Corp\",\n\t\"bio\": \"Leading tech brand\",\n\t\"logoUrl\": \"https://example.com/logo.png\",\n\t\"website\": \"https://acme.com\",\n\t\"category\": \"technology\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brands/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "brands",
+                "profile"
+              ]
+            },
+            "description": "Update the authenticated brand's profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Brand by ID",
+          "id": "652a9dc5-2022-48a6-bf66-a5714fec7b65",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brands/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "brands",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Brand ID"
+                }
+              ]
+            },
+            "description": "Get a specific brand's profile by ID."
+          },
+          "response": []
+        }
+      ],
+      "id": "ce3495af-ed99-49df-b94a-96a53a56441c"
+    },
+    {
+      "name": "Requirements",
+      "item": [
+        {
+          "name": "List Requirements",
+          "id": "a6d63ac5-d0b9-44dc-817a-7100e730c1e5",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/requirements?niche=&minFollowers=&status=&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requirements"
+              ],
+              "query": [
+                {
+                  "key": "niche",
+                  "value": "",
+                  "description": "Filter by niche"
+                },
+                {
+                  "key": "minFollowers",
+                  "value": "",
+                  "description": "Minimum followers count"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status (open/closed)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page"
+                }
+              ]
+            },
+            "description": "List all requirements with optional filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Requirement",
+          "id": "3e8d40b4-6d2f-4a7b-969d-904d045254dc",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\t\"title\": \"Looking for Tech Influencer\",\n\t\"description\": \"Need a tech creator for product review\",\n\t\"niches\": [\"tech\"],\n\t\"minFollowers\": 10000,\n\t\"minEngagementRate\": 3.0,\n\t\"budgetMin\": 500,\n\t\"budgetMax\": 2000,\n\t\"status\": \"open\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requirements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requirements"
+              ]
+            },
+            "description": "Create a new requirement (brand only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Requirement by ID",
+          "id": "edaa15ae-5aa2-4eb6-aa1d-e82f10b2d9e3",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/requirements/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requirements",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Requirement ID"
+                }
+              ]
+            },
+            "description": "Get a specific requirement by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Requirement",
+          "id": "593d3711-32bf-4d27-9d77-6ed48bfdc664",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\t\"title\": \"Updated Campaign Title\",\n\t\"description\": \"Updated campaign description\",\n\t\"niches\": [\"tech\", \"lifestyle\"],\n\t\"minFollowers\": 5000,\n\t\"minEngagementRate\": 3.5,\n\t\"budgetMin\": 500,\n\t\"budgetMax\": 5000,\n\t\"status\": \"open\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requirements/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requirements",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Requirement ID"
+                }
+              ]
+            },
+            "description": "Update an existing requirement (brand only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Requirement",
+          "id": "6f494a4b-d42f-4c49-9664-efa1dc2f5716",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/requirements/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "requirements",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Requirement ID"
+                }
+              ]
+            },
+            "description": "Delete a requirement (brand only)."
+          },
+          "response": []
+        }
+      ],
+      "id": "5b8b65a6-9574-475f-80de-28722037b4d1"
+    },
+    {
+      "name": "Feedback",
+      "item": [
+        {
+          "name": "Rate a User",
+          "id": "b887fc34-1714-4475-9c6e-cb450ce92c9d",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\t\"toUserId\": \"<user-uuid>\",\n\t\"score\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/feedback/ratings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "feedback",
+                "ratings"
+              ]
+            },
+            "description": "Rate another user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ratings for User",
+          "id": "23e5978f-8f92-4e3a-a85a-6e029c255ce7",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/feedback/ratings/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "feedback",
+                "ratings",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "User ID to get ratings for"
+                }
+              ]
+            },
+            "description": "Get all ratings for a specific user."
+          },
+          "response": []
+        },
+        {
+          "name": "Leave a Review",
+          "id": "6e7a323e-20d9-4144-b3e7-7ce38304e2dc",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\t\"toUserId\": \"<user-uuid>\",\n\t\"content\": \"Great collaboration experience!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/feedback/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "feedback",
+                "reviews"
+              ]
+            },
+            "description": "Leave a review for another user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reviews for User",
+          "id": "912e9a49-82fe-4f6b-b515-2f67a442b63c",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/feedback/reviews/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "feedback",
+                "reviews",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "User ID to get reviews for"
+                }
+              ]
+            },
+            "description": "Get all reviews for a specific user."
+          },
+          "response": []
+        }
+      ],
+      "id": "acb42631-0c09-4278-938d-6a668fea6065"
+    },
+    {
+      "name": "Social Metrics",
+      "item": [
+        {
+          "name": "Get Social Metrics",
+          "id": "80f9e4ad-4479-4fc9-bd5a-422d2cd95647",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/social/:platform/:handle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "social",
+                ":platform",
+                ":handle"
+              ],
+              "variable": [
+                {
+                  "key": "platform",
+                  "value": "instagram",
+                  "description": "Social media platform (e.g. instagram, twitter, youtube)"
+                },
+                {
+                  "key": "handle",
+                  "value": "janecreator",
+                  "description": "Social media handle"
+                }
+              ]
+            },
+            "description": "Get social media metrics for a specific platform and handle."
+          },
+          "response": []
+        }
+      ],
+      "id": "66cae5fd-821c-4bd0-a7ca-f068741f188b"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "id": "c792f5b8-d010-40ba-bf81-aadd62298f24",
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    }
+  ]
+}

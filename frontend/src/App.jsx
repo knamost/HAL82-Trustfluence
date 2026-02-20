@@ -5,6 +5,8 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { Toaster } from "react-hot-toast";
 import Login_page from "./pages/login_page";
 import Register_page from "./pages/register_page";
+
+
 function App(){
   return (
     <main>
