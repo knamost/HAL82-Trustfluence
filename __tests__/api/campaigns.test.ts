@@ -48,7 +48,7 @@ describe('PATCH /api/campaigns/[id]', () => {
     const req = makeAuthRequest('http://localhost/api/campaigns/campaign-1', creatorToken, 'PATCH', {
       status: 'accepted',
     });
-    const res = await updateCampaign(req as any, { params: { id: 'campaign-1' } });
+    const res = await updateCampaign(req as any, { params: Promise.resolve({ id: 'campaign-1' }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.status).toBe('accepted');
@@ -63,7 +63,7 @@ describe('PATCH /api/campaigns/[id]', () => {
     const req = makeAuthRequest('http://localhost/api/campaigns/campaign-1', creatorToken, 'PATCH', {
       status: 'declined',
     });
-    const res = await updateCampaign(req as any, { params: { id: 'campaign-1' } });
+    const res = await updateCampaign(req as any, { params: Promise.resolve({ id: 'campaign-1' }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.status).toBe('declined');
