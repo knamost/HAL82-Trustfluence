@@ -31,7 +31,9 @@ export default function MarketplacePage() {
     setLoading(true);
     fetch(`/api/creators?${params}`)
       .then(r => r.json())
-      .then(data => { setCreators(data); setLoading(false); });
+      .then(data => { setCreators(data); })
+      .catch(() => { setCreators([]); })
+      .finally(() => setLoading(false));
   }, [niche, minFollowers]);
 
   const formatFollowers = (n: number) => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : n >= 1000 ? `${(n/1000).toFixed(0)}K` : n.toString();

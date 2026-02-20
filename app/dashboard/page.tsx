@@ -28,11 +28,18 @@ export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [fetchError, setFetchError] = useState('');
+
   const fetchCampaigns = useCallback(async (token: string) => {
-    const res = await fetch('/api/campaigns', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) setCampaigns(await res.json());
+    try {
+      const res = await fetch('/api/campaigns', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setCampaigns(await res.json());
+      else setFetchError('Failed to load campaigns.');
+    } catch {
+      setFetchError('Network error. Please try again.');
+    }
   }, []);
 
   useEffect(() => {
@@ -100,6 +107,7 @@ export default function DashboardPage() {
             {user.type === 'creator' ? 'Incoming Campaign Requests' : 'My Campaign Requests'}
           </h2>
 
+          {fetchError && <p className="text-red-500 text-sm mb-4">{fetchError}</p>}
           {campaigns.length === 0 ? (
             <div className="text-center py-10 text-gray-500">
               <p className="text-4xl mb-2">📭</p>

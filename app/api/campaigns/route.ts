@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (user.type !== 'brand') return NextResponse.json({ error: 'Only brands can create campaigns' }, { status: 403 });
 
   const { creatorId, title, description, budget } = await request.json();
-  if (!creatorId || !title || !description || budget == null) {
+  if (!creatorId || !title || !description || budget === null || budget === undefined) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 

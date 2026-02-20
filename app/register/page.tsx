@@ -9,7 +9,7 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const defaultType = searchParams.get('type') === 'brand' ? 'brand' : 'creator';
 
-  const [type, setType] = useState<'creator' | 'brand'>(defaultType as 'creator' | 'brand');
+  const [type, setType] = useState<'creator' | 'brand'>(defaultType);
   const [form, setForm] = useState({
     name: '', email: '', password: '', bio: '', niche: 'tech',
     followers: '', instagram: '', youtube: '', tiktok: '',

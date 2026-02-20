@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 
+// WARNING: For MVP/development only. Set JWT_SECRET env var in production.
 const JWT_SECRET = process.env.JWT_SECRET || 'trustfluence-secret-key-mvp';
 
 export interface TokenPayload {
