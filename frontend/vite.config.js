@@ -16,13 +16,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/auth': 'http://localhost:8000',
-      '/creators': 'http://localhost:8000',
-      '/brands': 'http://localhost:8000',
-      '/requirements': 'http://localhost:8000',
-      '/feedback': 'http://localhost:8000',
-      '/social': 'http://localhost:8000',
-      '/admin': 'http://localhost:8000',
+      '/api': 'http://localhost:8000',
     },
   },
 })

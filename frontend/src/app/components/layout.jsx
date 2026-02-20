@@ -19,7 +19,7 @@ import {
   ChevronRight,
   Bell,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 /* ── Nav items by role ──────────────────────────────────────────── */
 function getNavItems(role) {
@@ -205,11 +205,19 @@ function TopBar({ onMenuClick }) {
 /* ── Layout ──────────────────────────────────────────── */
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Public pages without sidebar
-  const isPublicPage = ["/", "/auth"].includes(location.pathname);
+  // Redirect authenticated users away from /auth
+  useEffect(() => {
+    if (!loading && isAuthenticated && location.pathname === "/auth") {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [loading, isAuthenticated, location.pathname, navigate]);
+
+  // Public pages without sidebar (landing, auth) for guests
+  const isPublicPage = location.pathname === "/" || location.pathname === "/auth";
 
   if (isPublicPage && !isAuthenticated) {
     return (

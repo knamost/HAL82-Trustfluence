@@ -27,8 +27,8 @@ function PublicNav() {
 
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
-            <Link to="/" className=" ">
-              
+            <Link to="/dashboard" className="text-sm bg-primary text-white px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-colors font-medium">
+              Go to Dashboard
             </Link>
           ) : (
             <>

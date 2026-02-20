@@ -7,14 +7,14 @@ import { apiGet, apiPost } from "./index";
  * @param {{ toUserId: string, score: number }} data
  */
 export async function submitRating(data) {
-  return apiPost("/feedback/ratings", data);
+  return apiPost("/api/feedback/ratings", data);
 }
 
 /**
  * GET /feedback/ratings/:userId — get ratings summary for a user
  */
 export async function getRatings(userId) {
-  return apiGet(`/feedback/ratings/${userId}`);
+  return apiGet(`/api/feedback/ratings/${userId}`);
 }
 
 /* ── Reviews ── */
@@ -24,12 +24,12 @@ export async function getRatings(userId) {
  * @param {{ toUserId: string, content: string }} data
  */
 export async function submitReview(data) {
-  return apiPost("/feedback/reviews", data);
+  return apiPost("/api/feedback/reviews", data);
 }
 
 /**
  * GET /feedback/reviews/:userId — get reviews for a user
  */
 export async function getReviews(userId) {
-  return apiGet(`/feedback/reviews/${userId}`);
+  return apiGet(`/api/feedback/reviews/${userId}`);
 }

@@ -33,7 +33,18 @@ export function BrandDashboard() {
     async function loadDashboard() {
       setLoading(true);
       try {
-        const profile = await getMyBrandProfile();
+        let profile = null;
+        try {
+          profile = await getMyBrandProfile();
+        } catch (profileErr) {
+          if (profileErr?.status === 404) {
+            setBrand(null);
+            setLoading(false);
+            return;
+          }
+          throw profileErr;
+        }
+
         setBrand({
           name: profile.companyName,
           bio: profile.bio || "",
@@ -129,6 +140,19 @@ export function BrandDashboard() {
           <AlertCircle className="w-10 h-10 text-red-400 mb-3" />
           <p className="text-red-600 mb-1 font-medium">Failed to load dashboard</p>
           <p className="text-muted-foreground text-sm">{error}</p>
+        </div>
+      ) : !brand ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Briefcase className="w-10 h-10 text-muted-foreground mb-3" />
+          <p className="font-medium mb-1">No brand profile yet</p>
+          <p className="text-muted-foreground text-sm">Set up your profile to get started.</p>
+          <button
+            onClick={() => setActiveSection("profile")}
+            className="mt-4 px-6 py-2 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            Create Profile
+          </button>
         </div>
       ) : (
         <>

@@ -4,7 +4,7 @@ import { apiGet, apiDelete } from "./index";
  * GET /admin/stats — platform dashboard metrics (admin only)
  */
 export async function getAdminStats() {
-  return apiGet("/admin/stats");
+  return apiGet("/api/admin/stats");
 }
 
 /**
@@ -12,12 +12,12 @@ export async function getAdminStats() {
  * @param {Object} params — { role, search, page, limit }
  */
 export async function listUsers(params) {
-  return apiGet("/admin/users", params);
+  return apiGet("/api/admin/users", params);
 }
 
 /**
  * DELETE /admin/users/:id — delete a user (admin only)
  */
 export async function deleteUser(id) {
-  return apiDelete(`/admin/users/${id}`);
+  return apiDelete(`/api/admin/users/${id}`);
 }

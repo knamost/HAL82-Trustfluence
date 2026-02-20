@@ -4,7 +4,7 @@ import { apiGet, apiPut } from "./index";
  * GET /social/:platform/:handle — fetch social metrics
  */
 export async function getSocialMetrics(platform, handle) {
-  return apiGet(`/social/${platform}/${handle}`);
+  return apiGet(`/api/social/${platform}/${handle}`);
 }
 
 /**
@@ -12,5 +12,5 @@ export async function getSocialMetrics(platform, handle) {
  * @param {Object} data — { followersCount?, engagementRate?, platform?, socialHandle? }
  */
 export async function updateSocialMetrics(data) {
-  return apiPut("/social/metrics", data);
+  return apiPut("/api/social/metrics", data);
 }

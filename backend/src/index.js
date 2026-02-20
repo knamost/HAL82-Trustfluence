@@ -55,13 +55,13 @@ app.get('/', (req, res) => {
   return res.json({ status: 'Trustfluence API is up and running 🚀' });
 });
 
-app.use('/auth', authRouter);
-app.use('/creators', creatorsRouter);
-app.use('/brands', brandsRouter);
-app.use('/requirements', requirementsRouter);
-app.use('/feedback', feedbackRouter);
-app.use('/social', socialRouter);
-app.use('/admin', adminRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/creators', creatorsRouter);
+app.use('/api/brands', brandsRouter);
+app.use('/api/requirements', requirementsRouter);
+app.use('/api/feedback', feedbackRouter);
+app.use('/api/social', socialRouter);
+app.use('/api/admin', adminRouter);
 
 // --- Error handler (must be last) ---
 app.use(errorHandler);

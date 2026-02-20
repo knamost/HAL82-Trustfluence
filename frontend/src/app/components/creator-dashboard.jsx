@@ -34,7 +34,18 @@ export function CreatorDashboard() {
     async function loadDashboard() {
       setLoading(true);
       try {
-        const profile = await getMyCreatorProfile();
+        let profile = null;
+        try {
+          profile = await getMyCreatorProfile();
+        } catch (profileErr) {
+          // 404 means no profile yet — that's fine, show the empty state
+          if (profileErr?.status === 404) {
+            setCreator(null);
+            setLoading(false);
+            return;
+          }
+          throw profileErr;
+        }
 
         // Use backend model fields directly
         setCreator({
