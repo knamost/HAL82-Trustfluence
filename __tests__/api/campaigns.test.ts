@@ -31,6 +31,19 @@ describe('POST /api/campaigns', () => {
     expect(data.status).toBe('pending');
   });
 
+  it('returns 400 when budget is zero or negative', async () => {
+    const req = makeAuthRequest('http://localhost/api/campaigns', brandToken, 'POST', {
+      creatorId: 'creator-2',
+      title: 'Bad Budget',
+      description: 'Budget is zero',
+      budget: 0,
+    });
+    const res = await createCampaign(req as any);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toMatch(/positive/i);
+  });
+
   it('returns 403 when creator tries to create campaign', async () => {
     const req = makeAuthRequest('http://localhost/api/campaigns', creatorToken, 'POST', {
       creatorId: 'creator-2',

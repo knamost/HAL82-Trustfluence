@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
   if (!creatorId || !title || !description || budget === null || budget === undefined) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
+  if (typeof budget !== 'number' || budget <= 0) {
+    return NextResponse.json({ error: 'Budget must be a positive number' }, { status: 400 });
+  }
 
   const creator = store.creators.find(c => c.id === creatorId);
   if (!creator) return NextResponse.json({ error: 'Creator not found' }, { status: 404 });

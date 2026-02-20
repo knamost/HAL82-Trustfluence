@@ -1,7 +1,15 @@
 import jwt from 'jsonwebtoken';
 
-// WARNING: For MVP/development only. Set JWT_SECRET env var in production.
-const JWT_SECRET = process.env.JWT_SECRET || 'trustfluence-secret-key-mvp';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET environment variable is required in production');
+    }
+    return 'trustfluence-secret-key-mvp';
+  }
+  return secret;
+}
 
 export interface TokenPayload {
   id: string;
@@ -10,12 +18,12 @@ export interface TokenPayload {
 }
 
 export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, getJwtSecret()) as TokenPayload;
   } catch {
     return null;
   }
