@@ -198,16 +198,6 @@ src/
 
 1. **Real social-media API integration** — Replace the mock `socialService` with Instagram Graph API, TikTok API, YouTube Data API v3.
 2. **Messaging / Chat** — Let creators and brands communicate in-app (WebSocket-based).
-3. **Application system** — Creators can "apply" to brand requirements; brands can accept/reject.
-4. **Payment integration** — Stripe Connect for escrow-based payments between brands and creators.
-5. **Email notifications** — Transactional emails for new requirements matching creator niches.
-6. **Image uploads** — S3/Cloudflare R2 for avatars, logos, and portfolio media.
-7. **Admin dashboard** — Moderation panel for flagged reviews, user management.
-8. **Rate limiting** — Express-rate-limit to prevent abuse.
-9. **Input sanitization** — Add a library like `express-validator` or `zod` for richer validation.
-10. **Pagination metadata** — Return `{ data, total, page, totalPages }` on list endpoints.
-11. **Full-text search** — PostgreSQL `tsvector` for requirement/brand/creator search.
-12. **Analytics** — Track profile views, requirement click-through rates.
-13. **OAuth login** — Google / Instagram social login for faster onboarding.
-14. **Caching** — Redis layer for hot queries (creator listings, brand search).
-15. **CI/CD** — GitHub Actions pipeline for lint → test → deploy.
+3. **Payment integration** — Stripe Connect for escrow-based payments between brands and creators.
+4. **Email notifications** — Transactional emails for new requirements matching creator niches.
+5. **Admin dashboard** — Moderation panel for flagged reviews, user management.
