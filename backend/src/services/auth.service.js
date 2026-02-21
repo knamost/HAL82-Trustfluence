@@ -13,7 +13,7 @@
 import argon2 from 'argon2';
 import { eq } from 'drizzle-orm';
 import db from '../db/index.js';
-import { users } from '../models/index.js';
+import { users, creatorProfiles, brandProfiles } from '../models/index.js';
 import { signToken } from '../utils/jwt.js';
 import { AppError } from '../utils/AppError.js';
 
@@ -84,8 +84,27 @@ export async function loginUser({ email, password }) {
   if (!valid) throw new AppError('Invalid credentials', 401);
 
   const token = signToken({ id: user.id, email: user.email, role: user.role });
+
+  // Attach avatar from profile
+  let avatarUrl = null;
+  if (user.role === 'creator') {
+    const [profile] = await db
+      .select({ avatarUrl: creatorProfiles.avatarUrl })
+      .from(creatorProfiles)
+      .where(eq(creatorProfiles.userId, user.id))
+      .limit(1);
+    avatarUrl = profile?.avatarUrl || null;
+  } else if (user.role === 'brand') {
+    const [profile] = await db
+      .select({ logoUrl: brandProfiles.logoUrl })
+      .from(brandProfiles)
+      .where(eq(brandProfiles.userId, user.id))
+      .limit(1);
+    avatarUrl = profile?.logoUrl || null;
+  }
+
   return {
-    user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role },
+    user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, avatarUrl },
     token,
   };
 }
@@ -112,5 +131,23 @@ export async function getMe(userId) {
     .limit(1);
 
   if (!user) throw new AppError('User not found', 404);
+
+  // Attach avatar from profile if available
+  if (user.role === 'creator') {
+    const [profile] = await db
+      .select({ avatarUrl: creatorProfiles.avatarUrl })
+      .from(creatorProfiles)
+      .where(eq(creatorProfiles.userId, userId))
+      .limit(1);
+    user.avatarUrl = profile?.avatarUrl || null;
+  } else if (user.role === 'brand') {
+    const [profile] = await db
+      .select({ logoUrl: brandProfiles.logoUrl })
+      .from(brandProfiles)
+      .where(eq(brandProfiles.userId, userId))
+      .limit(1);
+    user.avatarUrl = profile?.logoUrl || null;
+  }
+
   return user;
 }

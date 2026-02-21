@@ -1,6 +1,13 @@
 import { apiGet, apiDelete } from "./index";
 
 /**
+ * GET /api/stats — public platform stats (no auth required)
+ */
+export async function getPublicStats() {
+  return apiGet("/api/stats");
+}
+
+/**
  * GET /admin/stats — platform dashboard metrics (admin only)
  */
 export async function getAdminStats() {

@@ -57,6 +57,15 @@ app.get('/', (req, res) => {
   return res.json({ status: 'Trustfluence API is up and running 🚀' });
 });
 
+// Public stats endpoint (no auth)
+import { getPublicStats } from './services/admin.service.js';
+app.get('/api/stats', async (req, res, next) => {
+  try {
+    const data = await getPublicStats();
+    res.json(data);
+  } catch (err) { next(err); }
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/creators', creatorsRouter);
 app.use('/api/brands', brandsRouter);

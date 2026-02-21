@@ -1,7 +1,12 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Search, Star, Users, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Search, Star, Users, BarChart3, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
+import { listCreators } from "../../api/creator.api";
+import { getPublicStats } from "../../api/admin.api";
+import logoSvg from "./figma/logo_KEC-01.svg";
+import FloatingChatbot from "./chatbot";
 
 /* ── Lightweight public navbar (shown when there's no sidebar) ── */
 function PublicNav() {
@@ -10,9 +15,7 @@ function PublicNav() {
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-sm">TF</span>
-          </div>
+          <img src={logoSvg} alt="Trustfluence" className="w-9 h-9 rounded-xl" />
           <span className="text-lg font-semibold text-foreground">Trustfluence</span>
         </Link>
 
@@ -27,8 +30,8 @@ function PublicNav() {
 
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
-            <Link to="/dashboard" className="text-sm bg-primary text-white px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-colors font-medium">
-              Go to Dashboard
+            <Link to="/" className="">
+              
             </Link>
           ) : (
             <>
@@ -48,6 +51,20 @@ function PublicNav() {
 
 export function LandingPage() {
   const { isAuthenticated } = useAuth();
+  const [topCreators, setTopCreators] = useState([]);
+  const [creatorsLoading, setCreatorsLoading] = useState(true);
+  const [platformStats, setPlatformStats] = useState(null);
+
+  useEffect(() => {
+    listCreators({ limit: 4 })
+      .then((data) => setTopCreators(data.slice(0, 4)))
+      .catch(() => {})
+      .finally(() => setCreatorsLoading(false));
+    getPublicStats()
+      .then((data) => setPlatformStats(data))
+      .catch(() => {});
+  }, []);
+
   return (
     <div>
       <PublicNav />
@@ -106,10 +123,10 @@ export function LandingPage() {
           {/* Stats Bar */}
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
             {[
-              { label: "Active Creators", value: "10K+" },
-              { label: "Brand Partners", value: "2.5K+" },
-              { label: "Campaigns", value: "45K+" },
-              { label: "Trust Score Avg", value: "4.7/5" },
+              { label: "Active Creators", value: platformStats ? platformStats.totalCreators.toLocaleString() : "\u2014" },
+              { label: "Brand Partners", value: platformStats ? platformStats.totalBrands.toLocaleString() : "\u2014" },
+              { label: "Campaigns", value: platformStats ? platformStats.totalCampaigns.toLocaleString() : "\u2014" },
+              { label: "Trust Score Avg", value: platformStats ? `${platformStats.avgTrustScore}/5` : "\u2014" },
             ].map((stat) => (
               <div key={stat.label} className="text-center p-4">
                 <div className="text-[#2563EB]" style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stat.value}</div>
@@ -242,69 +259,52 @@ export function LandingPage() {
               Discover verified creators with proven engagement and excellent trust ratings.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                name: "Sarah Chen",
-                niche: "Lifestyle",
-                followers: "125K",
-                engagement: "4.8%",
-                rating: 4.7,
-                img: "https://images.unsplash.com/photo-1758526213838-19d832f4aaa5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMHdvbWFuJTIwbGlmZXN0eWxlJTIwY3JlYXRvciUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MTU5Mzk3M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-              },
-              {
-                name: "Marcus Rivera",
-                niche: "Technology",
-                followers: "340K",
-                engagement: "5.2%",
-                rating: 4.9,
-                img: "https://images.unsplash.com/photo-1719257751404-1dea075324bd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBtYW4lMjBjcmVhdGl2ZSUyMGhlYWRzaG90fGVufDF8fHx8MTc3MTU5Mzk3NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-              },
-              {
-                name: "Emma Larsson",
-                niche: "Fitness",
-                followers: "89K",
-                engagement: "6.1%",
-                rating: 4.5,
-                img: "https://images.unsplash.com/photo-1769636930016-5d9f0ca653aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMGNyZWF0aXZlJTIwcHJvZmVzc2lvbmFsJTIwd29tYW4lMjBoZWFkc2hvdHxlbnwxfHx8fDE3NzE1OTM5NzV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-              },
-            ].map((creator) => (
-              <Link
-                key={creator.name}
-                to="/creators/1"
-                className="group p-6 rounded-2xl border border-border bg-white hover:shadow-lg transition-all duration-300"
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <ImageWithFallback
-                    src={creator.img}
-                    alt={creator.name}
-                    className="w-14 h-14 rounded-full object-cover"
-                  />
-                  <div>
-                    <h4 className="text-[#0A1628] group-hover:text-[#2563EB] transition-colors" style={{ fontWeight: 600 }}>{creator.name}</h4>
-                    <span className="text-muted-foreground" style={{ fontSize: '0.875rem' }}>{creator.niche}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>Followers</div>
-                    <div className="text-[#0A1628]" style={{ fontWeight: 600 }}>{creator.followers}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>Engagement</div>
-                    <div className="text-[#2563EB]" style={{ fontWeight: 600 }}>{creator.engagement}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>Rating</div>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      <span style={{ fontWeight: 600 }}>{creator.rating}</span>
+          {creatorsLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
+            </div>
+          ) : topCreators.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {topCreators.map((creator) => (
+                <Link
+                  key={creator.id}
+                  to={`/creators/${creator.id}`}
+                  className="group p-6 rounded-2xl border border-border bg-white hover:shadow-lg transition-all duration-300"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <ImageWithFallback
+                      src={creator.avatarUrl || ""}
+                      alt={creator.displayName}
+                      className="w-14 h-14 rounded-full object-cover"
+                    />
+                    <div className="min-w-0">
+                      <h4 className="text-[#0A1628] truncate group-hover:text-[#2563EB] transition-colors" style={{ fontWeight: 600 }}>{creator.displayName}</h4>
+                      <span className="text-muted-foreground" style={{ fontSize: '0.875rem' }}>{creator.niches?.[0] || creator.platform || "Creator"}</span>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>Followers</div>
+                      <div className="text-[#0A1628]" style={{ fontWeight: 600 }}>
+                        {creator.followersCount >= 1000 ? `${(creator.followersCount / 1000).toFixed(0)}K` : creator.followersCount}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>Engagement</div>
+                      <div className="text-[#2563EB]" style={{ fontWeight: 600 }}>{Number(creator.engagementRate).toFixed(1)}%</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-muted-foreground" style={{ fontSize: '0.75rem' }}>Rating</div>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        <span style={{ fontWeight: 600 }}>{creator.avgRating?.toFixed(1) ?? "\u2014"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : null}
           <div className="text-center mt-10">
             <Link
               to="/creators"
@@ -346,9 +346,7 @@ export function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">TF</span>
-                </div>
+                <img src={logoSvg} alt="Trustfluence" className="w-9 h-9 rounded-xl" />
                 <span className="text-lg font-semibold">Trustfluence</span>
               </div>
               <p className="text-gray-400 text-sm">
@@ -383,6 +381,7 @@ export function LandingPage() {
             &copy; {new Date().getFullYear()} Trustfluence. All rights reserved.
           </div>
         </div>
+        <FloatingChatbot/>
       </footer>
     </div>
   );

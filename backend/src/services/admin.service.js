@@ -38,6 +38,27 @@ export async function getDashboardStats() {
 }
 
 /**
+ * Get public platform stats (no auth required).
+ * Returns creator count, brand count, campaign count, and average trust score.
+ */
+export async function getPublicStats() {
+  const [[creatorCount], [brandCount], [requirementCount], [avgScore]] =
+    await Promise.all([
+      db.select({ count: sql`COUNT(*)::int` }).from(creatorProfiles),
+      db.select({ count: sql`COUNT(*)::int` }).from(brandProfiles),
+      db.select({ count: sql`COUNT(*)::int` }).from(requirements),
+      db.select({ avg: sql`COALESCE(ROUND(AVG(${ratings.score})::numeric, 1), 0)` }).from(ratings),
+    ]);
+
+  return {
+    totalCreators: creatorCount.count,
+    totalBrands: brandCount.count,
+    totalCampaigns: requirementCount.count,
+    avgTrustScore: Number(avgScore.avg),
+  };
+}
+
+/**
  * List all users with optional filters and pagination.
  *
  * @param {Object} filters – { role, search, page, limit }
