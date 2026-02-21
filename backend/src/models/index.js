@@ -10,12 +10,14 @@
  */
 
 // ── Enums ────────────────────────────────────────────────────────────────────
-export { userRoleEnum, requirementStatusEnum } from './enums.js';
+export { userRoleEnum, requirementStatusEnum, applicationStatusEnum } from './enums.js';
 
 // ── Tables ───────────────────────────────────────────────────────────────────
 export { users } from './user.model.js';
 export { creatorProfiles } from './creatorProfile.model.js';
 export { brandProfiles } from './brandProfile.model.js';
 export { requirements } from './requirement.model.js';
+export { applications } from './application.model.js';
 export { ratings } from './rating.model.js';
 export { reviews } from './review.model.js';
+export { messages } from './message.model.js';

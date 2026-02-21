@@ -25,3 +25,16 @@ export const requirementStatusEnum = pgEnum('requirement_status', [
   'closed',
   'paused',
 ]);
+
+// ─── Application Status ─────────────────────────────────────────────────────
+// Lifecycle of a creator's application to a campaign requirement:
+//   • pending   — submitted, awaiting brand review
+//   • accepted  — brand approved the application
+//   • rejected  — brand declined the application
+//   • withdrawn — creator cancelled their application
+export const applicationStatusEnum = pgEnum('application_status', [
+  'pending',
+  'accepted',
+  'rejected',
+  'withdrawn',
+]);

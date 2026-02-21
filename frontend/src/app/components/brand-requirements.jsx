@@ -1,12 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
-import { X, Plus, DollarSign, Users, TrendingUp, Briefcase } from "lucide-react";
+import { X, Plus, DollarSign, Users, TrendingUp, Briefcase, Loader2, CheckCircle2 } from "lucide-react";
 import { listRequirements, createRequirement } from "../../api/requirement.api";
+import { applyToRequirement, listMyApplications } from "../../api/application.api";
 import { useAuth } from "../context/auth-context";
 import { COMMON_NICHES } from "../../api/constants";
 
 export function BrandRequirements() {
-  const { isBrand } = useAuth();
+  const { isBrand, isCreator, isAuthenticated } = useAuth();
   const [selectedNiche, setSelectedNiche] = useState("");
+  const [appliedIds, setAppliedIds] = useState(new Set());
+  const [applyModal, setApplyModal] = useState(null);
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [proposedRate, setProposedRate] = useState("");
+  const [applySuccess, setApplySuccess] = useState("");
+  const [applyError, setApplyError] = useState("");
   const [minFollowers, setMinFollowers] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -36,7 +44,7 @@ export function BrandRequirements() {
         id: r.id,
         title: r.title,
         description: r.description || "",
-        brand: r.brandId,
+        brand: r.brandName || r.brandId,
         niches: r.niches || [],
         minFollowers: r.minFollowers,
         minEngagement: r.minEngagementRate,
@@ -53,6 +61,41 @@ export function BrandRequirements() {
   useEffect(() => {
     fetchReqs();
   }, [fetchReqs]);
+
+  // Load already-applied requirement IDs for creators
+  useEffect(() => {
+    if (!isCreator) return;
+    listMyApplications().then((apps) => {
+      setAppliedIds(new Set(apps.map((a) => a.requirementId)));
+    }).catch(() => {});
+  }, [isCreator]);
+
+  const handleApply = async (e) => {
+    e.preventDefault();
+    if (!applyModal) return;
+    setApplyLoading(true);
+    setApplyError("");
+    setApplySuccess("");
+    try {
+      await applyToRequirement({
+        requirementId: applyModal.id,
+        coverLetter: coverLetter || undefined,
+        proposedRate: proposedRate ? parseInt(proposedRate) : undefined,
+      });
+      setAppliedIds((prev) => new Set([...prev, applyModal.id]));
+      setApplySuccess("Application submitted!");
+      setTimeout(() => {
+        setApplyModal(null);
+        setCoverLetter("");
+        setProposedRate("");
+        setApplySuccess("");
+      }, 1200);
+    } catch (err) {
+      setApplyError(err?.message || "Failed to apply");
+    } finally {
+      setApplyLoading(false);
+    }
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -84,6 +127,14 @@ export function BrandRequirements() {
 
   const filteredRequirements = reqs;
 
+  // Build dynamic niches list: merge COMMON_NICHES with niches found in campaigns
+  const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const campaignNiches = [...new Set(reqs.flatMap((r) => r.niches || []))];
+  const allNiches = [...new Set([
+    ...COMMON_NICHES.map((n) => n.toLowerCase()),
+    ...campaignNiches.map((n) => n.toLowerCase()),
+  ])].map(capitalize).sort();
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -113,14 +164,14 @@ export function BrandRequirements() {
         <div className="bg-white rounded-2xl border border-border p-4 sm:p-6 mb-6 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Niche</label>
+              <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Filter</label>
               <select
                 value={selectedNiche}
                 onChange={(e) => setSelectedNiche(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
               >
                 <option value="">All Niches</option>
-                {COMMON_NICHES.map((niche) => (
+                {allNiches.map((niche) => (
                   <option key={niche} value={niche}>{niche}</option>
                 ))}
               </select>
@@ -217,11 +268,21 @@ export function BrandRequirements() {
                 </div>
               </div>
 
-              {req.status === "Open" && (
+              {req.status === "Open" && isAuthenticated && isCreator && (
                 <div className="mt-4">
-                  <button className="w-full sm:w-auto px-5 py-2.5 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                    Apply Now
-                  </button>
+                  {appliedIds.has(req.id) ? (
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#ECFDF5] text-[#059669] rounded-xl" style={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                      <CheckCircle2 className="w-4 h-4" /> Applied
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => { setApplyModal(req); setCoverLetter(""); setProposedRate(""); setApplyError(""); setApplySuccess(""); }}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors"
+                      style={{ fontWeight: 500, fontSize: '0.875rem' }}
+                    >
+                      Apply Now
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -236,6 +297,69 @@ export function BrandRequirements() {
           </div>
         )}
       </div>
+
+      {/* Apply Now Modal */}
+      {applyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 sm:p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-[#0A1628]" style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+                Apply to: {applyModal.title}
+              </h2>
+              <button onClick={() => setApplyModal(null)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {applySuccess ? (
+              <div className="flex items-center gap-2 text-[#059669] py-8 justify-center" style={{ fontWeight: 500 }}>
+                <CheckCircle2 className="w-5 h-5" /> {applySuccess}
+              </div>
+            ) : (
+              <form onSubmit={handleApply} className="space-y-4">
+                <div>
+                  <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Cover Letter</label>
+                  <textarea
+                    rows={4}
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    placeholder="Tell the brand why you're a great fit..."
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Proposed Rate ($)</label>
+                  <input
+                    type="number"
+                    value={proposedRate}
+                    onChange={(e) => setProposedRate(e.target.value)}
+                    placeholder="Your rate for this campaign"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                  />
+                </div>
+                {applyError && <p className="text-red-500" style={{ fontSize: '0.875rem' }}>{applyError}</p>}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setApplyModal(null)}
+                    className="flex-1 px-4 py-3 border border-border rounded-xl hover:bg-gray-50 transition-colors"
+                    style={{ fontWeight: 500 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={applyLoading}
+                    className="flex-1 px-4 py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {applyLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : "Submit Application"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Create Requirement Modal */}
       {showCreateModal && (

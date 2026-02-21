@@ -11,6 +11,7 @@ import { RatingReviews } from "./components/rating-reviews";
 import { NotFound } from "./components/not-found";
 import { ProtectedRoute } from "./components/protected-route";
 import { RoleDashboard } from "./components/role-dashboard";
+import { Inbox } from "./components/inbox";
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +28,22 @@ export const router = createBrowserRouter([
       { path: "brands/:id", Component: BrandProfile },
       { path: "requirements", Component: BrandRequirements },
       { path: "reviews", Component: RatingReviews },
+      {
+        path: "messages",
+        element: (
+          <ProtectedRoute>
+            <Inbox />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "messages/:userId",
+        element: (
+          <ProtectedRoute>
+            <Inbox />
+          </ProtectedRoute>
+        ),
+      },
       {
         path: "dashboard",
         element: (

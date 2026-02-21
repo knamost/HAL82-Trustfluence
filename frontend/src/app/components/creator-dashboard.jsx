@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import {
   Users, TrendingUp, Eye, Star, User, Briefcase,
   Settings, ChevronRight, BarChart3, Loader2, AlertCircle,
-  Pencil, Save, X
+  Pencil, Save, X, Plus, Send, Clock, CheckCircle2,
+  XCircle, ArrowLeft, DollarSign, FileText, Sparkles,
+  MapPin, Target, CalendarDays, ExternalLink, Undo2
 } from "lucide-react";
 import { getMyCreatorProfile, upsertCreatorProfile } from "../../api/creator.api";
 import { listRequirements } from "../../api/requirement.api";
 import { getRatings, getReviews } from "../../api/feedback.api";
+import { applyToRequirement, listMyApplications, withdrawApplication } from "../../api/application.api";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
@@ -17,6 +20,7 @@ const sections = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "profile", label: "My Profile", icon: User },
   { id: "requirements", label: "Campaigns", icon: Briefcase },
+  { id: "applications", label: "My Applications", icon: FileText },
   { id: "ratings", label: "Ratings", icon: Star },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -27,6 +31,7 @@ export function CreatorDashboard() {
   const [creator, setCreator] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [matchingRequirements, setMatchingRequirements] = useState([]);
+  const [myApplications, setMyApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -55,10 +60,11 @@ export function CreatorDashboard() {
         });
 
         if (user?.id) {
-          const [ratingsData, reviewsData, reqs] = await Promise.all([
+          const [ratingsData, reviewsData, reqs, apps] = await Promise.all([
             getRatings(user.id).catch(() => ({ avgRating: 0, ratingCount: 0 })),
             getReviews(user.id).catch(() => []),
             listRequirements({ status: "open" }).catch(() => []),
+            listMyApplications().catch(() => []),
           ]);
 
           setCreator((prev) => ({
@@ -78,12 +84,19 @@ export function CreatorDashboard() {
           setMatchingRequirements(Array.isArray(reqs) ? reqs.map((r) => ({
             id: r.id,
             title: r.title,
-            brand: r.brandId,
+            brand: r.brandName || r.brandId,
             niches: r.niches || [],
             budget: r.budgetMin && r.budgetMax ? `$${r.budgetMin} - $${r.budgetMax}` : "TBD",
+            budgetMin: r.budgetMin,
+            budgetMax: r.budgetMax,
+            minFollowers: r.minFollowers,
+            minEngagementRate: r.minEngagementRate,
             description: r.description || "",
             status: "Open",
+            createdAt: r.createdAt,
           })) : []);
+
+          setMyApplications(Array.isArray(apps) ? apps : []);
         }
       } catch (err) {
         setError(err?.message || "Failed to load dashboard data");
@@ -129,20 +142,260 @@ export function CreatorDashboard() {
           <p className="text-muted-foreground text-sm">{error}</p>
         </div>
       ) : !creator ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <User className="w-10 h-10 text-muted-foreground mb-3" />
-          <p className="font-medium mb-1">No creator profile yet</p>
-          <p className="text-muted-foreground text-sm">Set up your profile to get started.</p>
-        </div>
+        <CreateProfileSection onCreated={(profile) => {
+          setCreator({ ...profile, rating: 0, reviewCount: 0 });
+        }} />
       ) : (
         <>
           {activeSection === "overview" && <OverviewSection creator={creator} setCreator={setCreator} reviews={reviews} matchingRequirements={matchingRequirements} />}
           {activeSection === "profile" && <ProfileSection creator={creator} setCreator={setCreator} />}
-          {activeSection === "requirements" && <RequirementsSection matchingRequirements={matchingRequirements} />}
+          {activeSection === "requirements" && (
+            <RequirementsSection
+              matchingRequirements={matchingRequirements}
+              myApplications={myApplications}
+              setMyApplications={setMyApplications}
+              onApplied={() => setActiveSection("applications")}
+            />
+          )}
+          {activeSection === "applications" && (
+            <MyApplicationsSection
+              myApplications={myApplications}
+              setMyApplications={setMyApplications}
+            />
+          )}
           {activeSection === "ratings" && <RatingsSection creator={creator} reviews={reviews} />}
           {activeSection === "settings" && <SettingsSection email={user?.email || ""} />}
         </>
       )}
+    </div>
+  );
+}
+
+/* ── Create Profile Section (shown when no profile exists) ── */
+function CreateProfileSection({ onCreated }) {
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [form, setForm] = useState({
+    displayName: "",
+    bio: "",
+    platform: "instagram",
+    socialHandle: "",
+    avatarUrl: "",
+    followersCount: "",
+    engagementRate: "",
+    niches: [],
+  });
+
+  const nicheOptions = [
+    "Beauty", "Tech", "Fitness", "Fashion", "Food", "Travel",
+    "Gaming", "Music", "Education", "Lifestyle", "Health", "Finance",
+  ];
+
+  function toggleNiche(niche) {
+    setForm((f) => ({
+      ...f,
+      niches: f.niches.includes(niche)
+        ? f.niches.filter((n) => n !== niche)
+        : [...f.niches, niche],
+    }));
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!form.displayName.trim()) {
+      setFormError("Display name is required.");
+      return;
+    }
+    setFormError("");
+    setSaving(true);
+    try {
+      const payload = {
+        displayName: form.displayName.trim(),
+        bio: form.bio.trim() || undefined,
+        platform: form.platform || undefined,
+        socialHandle: form.socialHandle.trim() || undefined,
+        avatarUrl: form.avatarUrl.trim() || undefined,
+        followersCount: form.followersCount ? Number(form.followersCount) : undefined,
+        engagementRate: form.engagementRate ? Number(form.engagementRate) : undefined,
+        niches: form.niches.length > 0 ? form.niches : undefined,
+      };
+      const created = await upsertCreatorProfile(payload);
+      onCreated(created);
+    } catch (err) {
+      setFormError(err?.message || "Failed to create profile.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-2xl border border-border p-8 shadow-sm">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-[#EEF2FF] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Plus className="w-8 h-8 text-[#2563EB]" />
+          </div>
+          <h2 className="text-[#0A1628] text-xl mb-2" style={{ fontWeight: 700 }}>
+            Create Your Creator Profile
+          </h2>
+          <p className="text-muted-foreground" style={{ fontSize: '0.875rem' }}>
+            Set up your profile so brands can discover and connect with you.
+          </p>
+        </div>
+
+        {formError && (
+          <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+            {formError}
+          </div>
+        )}
+
+        <form onSubmit={handleCreate} className="space-y-5">
+          {/* Avatar URL */}
+          <div>
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+              Avatar URL
+            </label>
+            <input
+              type="text"
+              placeholder="https://example.com/avatar.jpg"
+              value={form.avatarUrl}
+              onChange={(e) => setForm((f) => ({ ...f, avatarUrl: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+              style={{ fontSize: '0.875rem' }}
+            />
+          </div>
+
+          {/* Display Name */}
+          <div>
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+              Display Name <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Your public name"
+              value={form.displayName}
+              onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+              style={{ fontSize: '0.875rem' }}
+            />
+          </div>
+
+          {/* Bio */}
+          <div>
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Bio</label>
+            <textarea
+              placeholder="Tell brands about yourself..."
+              value={form.bio}
+              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none"
+              style={{ fontSize: '0.875rem' }}
+            />
+          </div>
+
+          {/* Platform + Handle */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Platform</label>
+              <select
+                value={form.platform}
+                onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                style={{ fontSize: '0.875rem' }}
+              >
+                <option value="instagram">Instagram</option>
+                <option value="youtube">YouTube</option>
+                <option value="tiktok">TikTok</option>
+                <option value="twitter">Twitter / X</option>
+              </select>
+            </div>
+            <div>
+              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Handle</label>
+              <input
+                type="text"
+                placeholder="@yourhandle"
+                value={form.socialHandle}
+                onChange={(e) => setForm((f) => ({ ...f, socialHandle: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                style={{ fontSize: '0.875rem' }}
+              />
+            </div>
+          </div>
+
+          {/* Followers + Engagement */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Followers Count</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="e.g. 50000"
+                value={form.followersCount}
+                onChange={(e) => setForm((f) => ({ ...f, followersCount: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                style={{ fontSize: '0.875rem' }}
+              />
+            </div>
+            <div>
+              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Engagement Rate (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                placeholder="e.g. 4.5"
+                value={form.engagementRate}
+                onChange={(e) => setForm((f) => ({ ...f, engagementRate: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                style={{ fontSize: '0.875rem' }}
+              />
+            </div>
+          </div>
+
+          {/* Niches */}
+          <div>
+            <label className="block mb-2 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+              Niches <span className="text-muted-foreground font-normal">(select all that apply)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {nicheOptions.map((niche) => {
+                const selected = form.niches.includes(niche.toLowerCase());
+                return (
+                  <button
+                    type="button"
+                    key={niche}
+                    onClick={() => toggleNiche(niche.toLowerCase())}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      selected
+                        ? "bg-[#2563EB] text-white border-[#2563EB]"
+                        : "bg-white text-muted-foreground border-border hover:border-[#2563EB]/40 hover:text-[#2563EB]"
+                    }`}
+                  >
+                    {niche}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full py-3 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+            style={{ fontWeight: 600, fontSize: '0.9375rem' }}
+          >
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Creating Profile…
+              </span>
+            ) : (
+              "Create Profile"
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -487,39 +740,282 @@ function ProfileSection({ creator, setCreator }) {
   );
 }
 
-/* ── Requirements Section ── */
-function RequirementsSection({ matchingRequirements }) {
+/* ── Requirements Section (with Apply Now) ── */
+function RequirementsSection({ matchingRequirements, myApplications, setMyApplications, onApplied }) {
+  const [applyingTo, setApplyingTo] = useState(null);
+  const [applyError, setApplyError] = useState("");
+  const [applySuccess, setApplySuccess] = useState("");
+  const [coverLetter, setCoverLetter] = useState("");
+  const [proposedRate, setProposedRate] = useState("");
+  const [showApplyModal, setShowApplyModal] = useState(null);
+
+  const appliedIds = new Set((myApplications || []).map((a) => a.requirementId));
+
+  async function handleApply(reqId) {
+    setApplyingTo(reqId);
+    setApplyError("");
+    setApplySuccess("");
+    try {
+      const app = await applyToRequirement({
+        requirementId: reqId,
+        coverLetter: coverLetter.trim() || undefined,
+        proposedRate: proposedRate ? Number(proposedRate) : undefined,
+      });
+      setMyApplications((prev) => [app, ...prev]);
+      setApplySuccess("Application submitted successfully!");
+      setCoverLetter("");
+      setProposedRate("");
+      setShowApplyModal(null);
+      setTimeout(() => setApplySuccess(""), 3000);
+    } catch (err) {
+      setApplyError(err?.message || "Failed to apply. You may have already applied.");
+      setTimeout(() => setApplyError(""), 4000);
+    } finally {
+      setApplyingTo(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-[#0A1628]" style={{ fontWeight: 600 }}>
-          Matching Campaigns ({matchingRequirements.length})
+          Open Campaigns ({matchingRequirements.length})
         </h3>
         <Link to="/requirements" className="text-[#2563EB]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
           Browse All
         </Link>
       </div>
-      {matchingRequirements.map((req) => (
-        <div key={req.id} className="bg-white rounded-xl border border-border p-5 shadow-sm">
-          <div className="flex items-start justify-between mb-2">
-            <h4 className="text-[#0A1628]" style={{ fontWeight: 600 }}>{req.title}</h4>
-            <span className="px-2.5 py-1 bg-[#ECFDF5] text-[#059669] rounded-full" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Open</span>
-          </div>
-          <p className="text-[#2563EB] mb-2" style={{ fontSize: '0.875rem', fontWeight: 500 }}>{req.brand}</p>
-          <p className="text-muted-foreground mb-3" style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>{req.description}</p>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {req.niches.map((niche) => (
-              <span key={niche} className="px-2.5 py-0.5 bg-[#EEF2FF] text-[#2563EB] rounded-full" style={{ fontSize: '0.75rem' }}>{niche}</span>
-            ))}
-          </div>
-          <div className="flex justify-between items-center pt-3 border-t border-border">
-            <span className="text-[#059669]" style={{ fontWeight: 600, fontSize: '0.875rem' }}>{req.budget}</span>
-            <button className="px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] transition-colors" style={{ fontWeight: 500, fontSize: '0.875rem' }}>
-              Apply
-            </button>
-          </div>
+
+      {applySuccess && (
+        <div className="px-4 py-3 rounded-xl bg-[#ECFDF5] text-[#059669] border border-[#059669]/20 text-sm font-medium flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" /> {applySuccess}
         </div>
-      ))}
+      )}
+      {applyError && (
+        <div className="px-4 py-3 rounded-xl bg-red-50 text-red-600 border border-red-200 text-sm font-medium flex items-center gap-2">
+          <XCircle className="w-4 h-4" /> {applyError}
+        </div>
+      )}
+
+      {matchingRequirements.length === 0 && (
+        <div className="bg-white rounded-xl border border-border p-10 text-center shadow-sm">
+          <Briefcase className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-[#0A1628]" style={{ fontWeight: 600 }}>No open campaigns right now</p>
+          <p className="text-muted-foreground mt-1" style={{ fontSize: "0.875rem" }}>Check back later for new opportunities.</p>
+        </div>
+      )}
+
+      {matchingRequirements.map((req) => {
+        const hasApplied = appliedIds.has(req.id);
+        return (
+          <div key={req.id} className="bg-white rounded-xl border border-border p-5 shadow-sm">
+            <div className="flex items-start justify-between mb-2">
+              <h4 className="text-[#0A1628]" style={{ fontWeight: 600 }}>{req.title}</h4>
+              <span className="px-2.5 py-1 bg-[#ECFDF5] text-[#059669] rounded-full" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Open</span>
+            </div>
+            {req.description && (
+              <p className="text-muted-foreground mb-3" style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>{req.description}</p>
+            )}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {(req.niches || []).map((niche) => (
+                <span key={niche} className="px-2.5 py-0.5 bg-[#EEF2FF] text-[#2563EB] rounded-full" style={{ fontSize: '0.75rem' }}>{niche}</span>
+              ))}
+            </div>
+            {/* Campaign details */}
+            <div className="flex flex-wrap gap-4 mb-3 text-muted-foreground" style={{ fontSize: '0.8125rem' }}>
+              {req.minFollowers > 0 && (
+                <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {req.minFollowers.toLocaleString()}+ followers</span>
+              )}
+              {req.minEngagementRate > 0 && (
+                <span className="flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" /> {req.minEngagementRate}%+ engagement</span>
+              )}
+              {req.budget !== "TBD" && (
+                <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> {req.budget}</span>
+              )}
+            </div>
+            <div className="flex justify-between items-center pt-3 border-t border-border">
+              <span className="text-[#059669]" style={{ fontWeight: 600, fontSize: '0.875rem' }}>{req.budget}</span>
+              {hasApplied ? (
+                <span className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg cursor-default" style={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                  <CheckCircle2 className="w-4 h-4" /> Applied
+                </span>
+              ) : (
+                <button
+                  onClick={() => setShowApplyModal(req.id)}
+                  disabled={applyingTo === req.id}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+                  style={{ fontWeight: 500, fontSize: '0.875rem' }}
+                >
+                  {applyingTo === req.id ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Applying…</>
+                  ) : (
+                    <><Send className="w-4 h-4" /> Apply Now</>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Apply Modal */}
+            {showApplyModal === req.id && (
+              <div className="mt-4 p-4 bg-[#F8FAFC] rounded-xl border border-[#2563EB]/20 space-y-3">
+                <h5 className="text-[#0A1628]" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Apply to "{req.title}"</h5>
+                <div>
+                  <label className="block mb-1 text-[#0A1628]" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Cover Letter (optional)</label>
+                  <textarea
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    placeholder="Tell the brand why you're a great fit…"
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none"
+                    style={{ fontSize: '0.8125rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-[#0A1628]" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Proposed Rate (USD, optional)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={proposedRate}
+                    onChange={(e) => setProposedRate(e.target.value)}
+                    placeholder="e.g. 500"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                    style={{ fontSize: '0.8125rem' }}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleApply(req.id)}
+                    disabled={applyingTo === req.id}
+                    className="px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+                    style={{ fontWeight: 500, fontSize: '0.8125rem' }}
+                  >
+                    {applyingTo === req.id ? "Submitting…" : "Submit Application"}
+                  </button>
+                  <button
+                    onClick={() => { setShowApplyModal(null); setCoverLetter(""); setProposedRate(""); }}
+                    className="px-4 py-2 border border-border rounded-lg hover:bg-gray-50 transition-colors"
+                    style={{ fontWeight: 500, fontSize: '0.8125rem' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── My Applications Section ── */
+function MyApplicationsSection({ myApplications, setMyApplications }) {
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  const [msg, setMsg] = useState(null);
+
+  async function handleWithdraw(appId) {
+    setWithdrawingId(appId);
+    setMsg(null);
+    try {
+      await withdrawApplication(appId);
+      setMyApplications((prev) =>
+        prev.map((a) => (a.id === appId ? { ...a, status: "withdrawn" } : a))
+      );
+      setMsg({ type: "success", text: "Application withdrawn." });
+      setTimeout(() => setMsg(null), 3000);
+    } catch (err) {
+      setMsg({ type: "error", text: err?.message || "Failed to withdraw application." });
+      setTimeout(() => setMsg(null), 4000);
+    } finally {
+      setWithdrawingId(null);
+    }
+  }
+
+  const statusConfig = {
+    pending: { bg: "bg-[#FFFBEB]", text: "text-[#D97706]", icon: Clock, label: "Pending" },
+    accepted: { bg: "bg-[#ECFDF5]", text: "text-[#059669]", icon: CheckCircle2, label: "Accepted" },
+    rejected: { bg: "bg-red-50", text: "text-red-500", icon: XCircle, label: "Rejected" },
+    withdrawn: { bg: "bg-gray-100", text: "text-gray-500", icon: Undo2, label: "Withdrawn" },
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-[#0A1628]" style={{ fontWeight: 600 }}>
+        My Applications ({myApplications.length})
+      </h3>
+
+      {msg && (
+        <div className={`px-4 py-3 rounded-xl text-sm font-medium ${
+          msg.type === "success" ? "bg-[#ECFDF5] text-[#059669] border border-[#059669]/20" : "bg-red-50 text-red-600 border border-red-200"
+        }`}>
+          {msg.text}
+        </div>
+      )}
+
+      {myApplications.length === 0 && (
+        <div className="bg-white rounded-xl border border-border p-10 text-center shadow-sm">
+          <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-[#0A1628]" style={{ fontWeight: 600 }}>No applications yet</p>
+          <p className="text-muted-foreground mt-1" style={{ fontSize: "0.875rem" }}>
+            Browse open campaigns and apply to get started.
+          </p>
+        </div>
+      )}
+
+      {myApplications.map((app) => {
+        const status = statusConfig[app.status] || statusConfig.pending;
+        const StatusIcon = status.icon;
+        return (
+          <div key={app.id} className="bg-white rounded-xl border border-border p-5 shadow-sm">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h4 className="text-[#0A1628]" style={{ fontWeight: 600 }}>
+                  {app.requirementTitle || "Campaign"}
+                </h4>
+                <p className="text-muted-foreground" style={{ fontSize: '0.8125rem' }}>
+                  Applied {new Date(app.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+              </div>
+              <span className={`flex items-center gap-1 px-2.5 py-1 ${status.bg} ${status.text} rounded-full`} style={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                <StatusIcon className="w-3 h-3" /> {status.label}
+              </span>
+            </div>
+
+            {app.coverLetter && (
+              <p className="text-muted-foreground mb-2" style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>
+                {app.coverLetter}
+              </p>
+            )}
+
+            {app.proposedRate && (
+              <p className="text-[#059669] mb-2" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                Proposed rate: ${app.proposedRate}
+              </p>
+            )}
+
+            {/* Budget info from joined requirement */}
+            {(app.requirementBudgetMin != null || app.requirementBudgetMax != null) && (
+              <p className="text-muted-foreground" style={{ fontSize: '0.8125rem' }}>
+                Campaign budget: ${app.requirementBudgetMin || 0} – ${app.requirementBudgetMax || 0}
+              </p>
+            )}
+
+            {app.status === "pending" && (
+              <div className="flex justify-end pt-3 border-t border-border mt-3">
+                <button
+                  onClick={() => handleWithdraw(app.id)}
+                  disabled={withdrawingId === app.id}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                  style={{ fontSize: '0.8125rem', fontWeight: 500 }}
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  {withdrawingId === app.id ? "Withdrawing…" : "Withdraw"}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

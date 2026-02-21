@@ -80,8 +80,10 @@ export async function listCreators({ niche, minFollowers, minEngagement, search,
   const conditions = [];
 
   if (niche) {
-    // jsonb array contains value
-    conditions.push(sql`${creatorProfiles.niches} @> ${JSON.stringify([niche])}::jsonb`);
+    // Case-insensitive jsonb array contains
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM jsonb_array_elements_text(${creatorProfiles.niches}) AS n WHERE lower(n) = lower(${niche}))`,
+    );
   }
 
   if (minFollowers) {

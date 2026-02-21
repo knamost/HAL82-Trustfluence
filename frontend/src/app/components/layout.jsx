@@ -18,6 +18,7 @@ import {
   Shield,
   ChevronRight,
   Bell,
+  MessageSquare,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -33,6 +34,7 @@ function getNavItems(role) {
       ...common,
       { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
       { to: "/requirements", icon: FileText, label: "Opportunities" },
+      { to: "/messages", icon: MessageSquare, label: "Messages" },
       { to: "/reviews", icon: Star, label: "Reviews" },
     ];
   }
@@ -42,6 +44,7 @@ function getNavItems(role) {
       ...common,
       { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
       { to: "/requirements", icon: FileText, label: "Requirements" },
+      { to: "/messages", icon: MessageSquare, label: "Messages" },
       { to: "/reviews", icon: Star, label: "Reviews" },
     ];
   }
@@ -52,6 +55,7 @@ function getNavItems(role) {
       { to: "/dashboard", icon: Shield, label: "Admin Panel" },
       { to: "/creators", icon: Users, label: "Creators" },
       { to: "/requirements", icon: FileText, label: "Requirements" },
+      { to: "/messages", icon: MessageSquare, label: "Messages" },
       { to: "/reviews", icon: Star, label: "Reviews" },
     ];
   }

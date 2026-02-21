@@ -7,6 +7,7 @@
  * GET    /requirements/:id  — single          (public)
  * PUT    /requirements/:id  — update          (brand owner, validated)
  * DELETE /requirements/:id  — delete          (brand owner)
+ * POST   /requirements/:id/apply — creator applies (shortcut)
  */
 
 import { Router } from 'express';
@@ -15,6 +16,7 @@ import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { createRequirementSchema, updateRequirementSchema } from '../validation/requirement.validation.js';
 import * as reqCtrl from '../controllers/requirement.controller.js';
+import * as appCtrl from '../controllers/application.controller.js';
 
 const router = Router();
 
@@ -39,5 +41,17 @@ router.put(
 );
 
 router.delete('/:id', authenticate, authorize('brand'), asyncHandler(reqCtrl.remove));
+
+// Shortcut: POST /requirements/:id/apply (creator only)
+router.post(
+  '/:id/apply',
+  authenticate,
+  authorize('creator'),
+  asyncHandler(async (req, res) => {
+    // Delegate to the application controller — inject requirementId from URL param
+    req.body.requirementId = req.params.id;
+    return appCtrl.apply(req, res);
+  }),
+);
 
 export default router;

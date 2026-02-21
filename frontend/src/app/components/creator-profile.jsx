@@ -1,6 +1,7 @@
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
-import { Star, Users, TrendingUp, Instagram, Youtube, MessageCircle, ExternalLink, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { Star, Users, TrendingUp, Instagram, Youtube, MessageCircle, ExternalLink, ArrowLeft, Loader2, AlertCircle, Mail } from "lucide-react";
+import { useAuth } from "../context/auth-context";
 import { getCreator } from "../../api/creator.api";
 import { getReviews, getRatings } from "../../api/feedback.api";
 import { StarRating } from "./star-rating";
@@ -17,6 +18,8 @@ const platformIcons = {
 
 export function CreatorProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creator, setCreator] = useState(null);
@@ -171,11 +174,18 @@ export function CreatorProfile() {
         </div>
 
         {/* Contact Button */}
-        <div className="mb-6">
-          <button className="w-full sm:w-auto px-8 py-3.5 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors shadow-sm" style={{ fontWeight: 500 }}>
-            Send Proposal
-          </button>
-        </div>
+        {isAuthenticated && user?.id !== id && (
+          <div className="mb-6">
+            <button
+              onClick={() => navigate(`/messages/${id}`)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors shadow-sm"
+              style={{ fontWeight: 500 }}
+            >
+              <Mail className="w-4 h-4" />
+              Send Message
+            </button>
+          </div>
+        )}
 
         {/* Reviews Section */}
         <div className="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-sm">

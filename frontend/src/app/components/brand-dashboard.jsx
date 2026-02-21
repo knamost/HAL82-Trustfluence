@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import {
   Building2, TrendingUp, Star, Briefcase,
-  Settings, ChevronRight, BarChart3, Loader2, Plus, Trash2, Pause, Play, AlertCircle
+  Settings, ChevronRight, BarChart3, Loader2, Plus, Trash2, Pause, Play, AlertCircle,
+  Users, MessageSquare, CheckCircle2, XCircle, Eye, X
 } from "lucide-react";
 import { getMyBrandProfile, upsertBrandProfile } from "../../api/brand.api";
 import { listRequirements, createRequirement, updateRequirement, deleteRequirement } from "../../api/requirement.api";
+import { listApplicationsForRequirement, updateApplicationStatus } from "../../api/application.api";
 import { getRatings, getReviews } from "../../api/feedback.api";
+import { COMMON_NICHES } from "../../api/constants";
 import { StarRating } from "./star-rating";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
@@ -142,18 +145,17 @@ export function BrandDashboard() {
           <p className="text-muted-foreground text-sm">{error}</p>
         </div>
       ) : !brand ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Briefcase className="w-10 h-10 text-muted-foreground mb-3" />
-          <p className="font-medium mb-1">No brand profile yet</p>
-          <p className="text-muted-foreground text-sm">Set up your profile to get started.</p>
-          <button
-            onClick={() => setActiveSection("profile")}
-            className="mt-4 px-6 py-2 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            Create Profile
-          </button>
-        </div>
+        <CreateBrandProfileSection onCreated={(profile) => {
+          setBrand({
+            name: profile.companyName,
+            bio: profile.bio || "",
+            logo: profile.logoUrl || "",
+            website: profile.website || "",
+            category: profile.category || "",
+            rating: 0,
+            reviewCount: 0,
+          });
+        }} />
       ) : (
         <>
           {activeSection === "overview" && (
@@ -243,6 +245,165 @@ function OverviewSection({ brand, reviews, myRequirements }) {
             <p className="text-muted-foreground" style={{ fontSize: "0.875rem" }}>No active campaigns.</p>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────── CREATE BRAND PROFILE ──────────────────────────── */
+function CreateBrandProfileSection({ onCreated }) {
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [form, setForm] = useState({
+    companyName: "",
+    bio: "",
+    logoUrl: "",
+    website: "",
+    category: "",
+  });
+
+  const categoryOptions = [
+    "technology", "beauty", "fashion", "fitness", "food",
+    "gaming", "travel", "lifestyle", "crypto", "animal",
+  ];
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!form.companyName.trim()) {
+      setFormError("Company name is required.");
+      return;
+    }
+    setFormError("");
+    setSaving(true);
+    try {
+      const payload = {
+        companyName: form.companyName.trim(),
+        bio: form.bio.trim() || undefined,
+        logoUrl: form.logoUrl.trim() || undefined,
+        website: form.website.trim() || undefined,
+        category: form.category || undefined,
+      };
+      const created = await upsertBrandProfile(payload);
+      onCreated(created);
+    } catch (err) {
+      const text =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.map((e) => e.message).join(", ") ||
+        err?.message ||
+        "Failed to create profile.";
+      setFormError(text);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-2xl border border-border p-8 shadow-sm">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-[#EEF2FF] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Plus className="w-8 h-8 text-[#2563EB]" />
+          </div>
+          <h2 className="text-[#0A1628] text-xl mb-2" style={{ fontWeight: 700 }}>
+            Create Your Brand Profile
+          </h2>
+          <p className="text-muted-foreground" style={{ fontSize: '0.875rem' }}>
+            Set up your brand profile so creators can discover and connect with you.
+          </p>
+        </div>
+
+        {formError && (
+          <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+            {formError}
+          </div>
+        )}
+
+        <form onSubmit={handleCreate} className="space-y-5">
+          {/* Logo URL */}
+          <div>
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+              Logo URL
+            </label>
+            <input
+              type="text"
+              placeholder="https://example.com/logo.png"
+              value={form.logoUrl}
+              onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+              style={{ fontSize: '0.875rem' }}
+            />
+          </div>
+
+          {/* Company Name */}
+          <div>
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+              Company Name <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Your company or brand name"
+              value={form.companyName}
+              onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+              style={{ fontSize: '0.875rem' }}
+            />
+          </div>
+
+          {/* Bio */}
+          <div>
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Bio</label>
+            <textarea
+              placeholder="Tell creators about your brand..."
+              value={form.bio}
+              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none"
+              style={{ fontSize: '0.875rem' }}
+            />
+          </div>
+
+          {/* Category + Website */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Category</label>
+              <select
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                style={{ fontSize: '0.875rem' }}
+              >
+                <option value="">Select a category</option>
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Website</label>
+              <input
+                type="text"
+                placeholder="https://yourbrand.com"
+                value={form.website}
+                onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                style={{ fontSize: '0.875rem' }}
+              />
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full px-6 py-3.5 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+            style={{ fontWeight: 600 }}
+          >
+            {saving ? "Creating..." : "Create Brand Profile"}
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -410,12 +571,21 @@ function RequirementsSection({ myRequirements, setMyRequirements }) {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    niches: "",
+    niches: [],
+    nicheInput: "",
     minFollowers: "",
     minEngagementRate: "",
     budgetMin: "",
     budgetMax: "",
   });
+  const [showNicheSuggestions, setShowNicheSuggestions] = useState(false);
+
+  // Build suggestions from COMMON_NICHES + existing campaign niches
+  const existingNiches = [...new Set(myRequirements.flatMap((r) => r.niches || []))];
+  const allSuggestions = [...new Set([...COMMON_NICHES, ...existingNiches])];
+  const filteredSuggestions = allSuggestions.filter(
+    (n) => !form.niches.includes(n) && n.toLowerCase().includes((form.nicheInput || "").toLowerCase())
+  );
 
   async function handleCreate() {
     if (!form.title.trim()) return;
@@ -424,7 +594,7 @@ function RequirementsSection({ myRequirements, setMyRequirements }) {
       const req = await createRequirement({
         title: form.title,
         description: form.description || undefined,
-        niches: form.niches ? form.niches.split(",").map((n) => n.trim()) : undefined,
+        niches: form.niches.length > 0 ? form.niches : undefined,
         minFollowers: form.minFollowers ? Number(form.minFollowers) : undefined,
         minEngagementRate: form.minEngagementRate ? Number(form.minEngagementRate) : undefined,
         budgetMin: form.budgetMin ? Number(form.budgetMin) : undefined,
@@ -445,7 +615,7 @@ function RequirementsSection({ myRequirements, setMyRequirements }) {
         },
         ...prev,
       ]);
-      setForm({ title: "", description: "", niches: "", minFollowers: "", minEngagementRate: "", budgetMin: "", budgetMax: "" });
+      setForm({ title: "", description: "", niches: [], nicheInput: "", minFollowers: "", minEngagementRate: "", budgetMin: "", budgetMax: "" });
       setShowCreate(false);
     } catch {
       /* ignore */
@@ -502,8 +672,51 @@ function RequirementsSection({ myRequirements, setMyRequirements }) {
             <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} placeholder="Campaign description" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none" />
           </div>
           <div>
-            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Niches (comma-separated)</label>
-            <input value={form.niches} onChange={(e) => setForm((f) => ({ ...f, niches: e.target.value }))} placeholder="Fashion, Lifestyle, Tech" className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]" />
+            <label className="block mb-1.5 text-[#0A1628]" style={{ fontSize: "0.875rem", fontWeight: 500 }}>Niches</label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {form.niches.map((niche) => (
+                <span key={niche} className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#EEF2FF] text-[#2563EB] rounded-full" style={{ fontSize: "0.8125rem" }}>
+                  {niche}
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, niches: f.niches.filter((n) => n !== niche) }))} className="hover:text-red-500 transition-colors">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="relative">
+              <input
+                value={form.nicheInput}
+                onChange={(e) => { setForm((f) => ({ ...f, nicheInput: e.target.value })); setShowNicheSuggestions(true); }}
+                onFocus={() => setShowNicheSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowNicheSuggestions(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && form.nicheInput.trim()) {
+                    e.preventDefault();
+                    const val = form.nicheInput.trim();
+                    if (!form.niches.includes(val)) setForm((f) => ({ ...f, niches: [...f.niches, val], nicheInput: "" }));
+                    else setForm((f) => ({ ...f, nicheInput: "" }));
+                  }
+                }}
+                placeholder="Type to search or add niches…"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+              />
+              {showNicheSuggestions && filteredSuggestions.length > 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                  {filteredSuggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setForm((f) => ({ ...f, niches: [...f.niches, s], nicheInput: "" })); setShowNicheSuggestions(false); }}
+                      className="w-full text-left px-4 py-2 hover:bg-[#EEF2FF] text-[#0A1628] transition-colors"
+                      style={{ fontSize: "0.875rem" }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -545,42 +758,188 @@ function RequirementsSection({ myRequirements, setMyRequirements }) {
         </div>
       )}
       {myRequirements.map((req) => (
-        <div key={req.id} className="bg-white rounded-xl border border-border p-5 shadow-sm">
-          <div className="flex items-start justify-between mb-2">
-            <h4 className="text-[#0A1628]" style={{ fontWeight: 600 }}>{req.title}</h4>
-            <StatusBadge status={req.status} />
-          </div>
-          {req.description && (
-            <p className="text-muted-foreground mb-3" style={{ fontSize: "0.875rem", lineHeight: 1.6 }}>{req.description}</p>
-          )}
-          <div className="flex flex-wrap gap-2 mb-3">
-            {(req.niches || []).map((niche) => (
-              <span key={niche} className="px-2.5 py-0.5 bg-[#EEF2FF] text-[#2563EB] rounded-full" style={{ fontSize: "0.75rem" }}>
-                {niche}
-              </span>
-            ))}
-          </div>
-          <div className="flex justify-between items-center pt-3 border-t border-border">
-            <span className="text-[#059669]" style={{ fontWeight: 600, fontSize: "0.875rem" }}>{req.budget}</span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleToggleStatus(req)}
-                className="p-2 rounded-lg border border-border hover:bg-gray-50 transition-colors"
-                title={req.status === "open" ? "Pause campaign" : "Resume campaign"}
-              >
-                {req.status === "open" ? <Pause className="w-4 h-4 text-amber-500" /> : <Play className="w-4 h-4 text-green-600" />}
-              </button>
-              <button
-                onClick={() => handleDelete(req.id)}
-                className="p-2 rounded-lg border border-border hover:bg-red-50 transition-colors"
-                title="Delete campaign"
-              >
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </button>
-            </div>
-          </div>
-        </div>
+        <CampaignCard
+          key={req.id}
+          req={req}
+          onToggleStatus={() => handleToggleStatus(req)}
+          onDelete={() => handleDelete(req.id)}
+        />
       ))}
+    </div>
+  );
+}
+
+/* ── Campaign Card with Applicants ── */
+function CampaignCard({ req, onToggleStatus, onDelete }) {
+  const [showApplicants, setShowApplicants] = useState(false);
+  const [applicants, setApplicants] = useState([]);
+  const [loadingApps, setLoadingApps] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
+
+  async function loadApplicants() {
+    if (showApplicants) {
+      setShowApplicants(false);
+      return;
+    }
+    setLoadingApps(true);
+    try {
+      const data = await listApplicationsForRequirement(req.id);
+      setApplicants(data);
+      setShowApplicants(true);
+    } catch {
+      setApplicants([]);
+      setShowApplicants(true);
+    } finally {
+      setLoadingApps(false);
+    }
+  }
+
+  async function handleStatusChange(appId, newStatus) {
+    setUpdatingId(appId);
+    try {
+      await updateApplicationStatus(appId, newStatus);
+      setApplicants((prev) =>
+        prev.map((a) => (a.id === appId ? { ...a, status: newStatus } : a))
+      );
+    } catch {
+      /* ignore */
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  const appStatusMap = {
+    pending: { bg: "bg-[#FFFBEB]", text: "text-[#D97706]", label: "Pending" },
+    accepted: { bg: "bg-[#ECFDF5]", text: "text-[#059669]", label: "Accepted" },
+    rejected: { bg: "bg-red-50", text: "text-red-500", label: "Rejected" },
+    withdrawn: { bg: "bg-gray-100", text: "text-gray-500", label: "Withdrawn" },
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
+      <div className="flex items-start justify-between mb-2">
+        <h4 className="text-[#0A1628]" style={{ fontWeight: 600 }}>{req.title}</h4>
+        <StatusBadge status={req.status} />
+      </div>
+      {req.description && (
+        <p className="text-muted-foreground mb-3" style={{ fontSize: "0.875rem", lineHeight: 1.6 }}>{req.description}</p>
+      )}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {(req.niches || []).map((niche) => (
+          <span key={niche} className="px-2.5 py-0.5 bg-[#EEF2FF] text-[#2563EB] rounded-full" style={{ fontSize: "0.75rem" }}>{niche}</span>
+        ))}
+      </div>
+      <div className="flex justify-between items-center pt-3 border-t border-border">
+        <span className="text-[#059669]" style={{ fontWeight: 600, fontSize: "0.875rem" }}>{req.budget}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadApplicants}
+            disabled={loadingApps}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[#2563EB] border border-[#2563EB]/30 rounded-lg hover:bg-[#EEF2FF] transition-colors disabled:opacity-50"
+            style={{ fontSize: "0.8125rem", fontWeight: 500 }}
+          >
+            {loadingApps ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+            Applicants
+          </button>
+          <button
+            onClick={onToggleStatus}
+            className="p-2 rounded-lg border border-border hover:bg-gray-50 transition-colors"
+            title={req.status === "open" ? "Pause campaign" : "Resume campaign"}
+          >
+            {req.status === "open" ? <Pause className="w-4 h-4 text-amber-500" /> : <Play className="w-4 h-4 text-green-600" />}
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-2 rounded-lg border border-border hover:bg-red-50 transition-colors"
+            title="Delete campaign"
+          >
+            <Trash2 className="w-4 h-4 text-red-500" />
+          </button>
+        </div>
+      </div>
+
+      {/* Applicants Panel */}
+      {showApplicants && (
+        <div className="mt-4 pt-4 border-t border-border">
+          <h5 className="text-[#0A1628] mb-3 flex items-center gap-2" style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+            <Users className="w-4 h-4 text-[#2563EB]" />
+            Applications ({applicants.length})
+          </h5>
+          {applicants.length === 0 ? (
+            <p className="text-muted-foreground" style={{ fontSize: "0.8125rem" }}>No applications yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {applicants.map((app) => {
+                const status = appStatusMap[app.status] || appStatusMap.pending;
+                const creatorName = app.creatorDisplayName || [app.creatorFirstName, app.creatorLastName].filter(Boolean).join(" ") || app.creatorEmail;
+                return (
+                  <div key={app.id} className="flex items-start justify-between p-3 rounded-lg bg-[#F8FAFC] border border-border/50">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[#0A1628]" style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                          {creatorName}
+                        </span>
+                        <span className={`px-2 py-0.5 ${status.bg} ${status.text} rounded-full`} style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
+                          {status.label}
+                        </span>
+                      </div>
+                      {app.coverLetter && (
+                        <p className="text-muted-foreground mb-1" style={{ fontSize: "0.8125rem", lineHeight: 1.4 }}>
+                          {app.coverLetter}
+                        </p>
+                      )}
+                      {app.proposedRate && (
+                        <p className="text-[#059669]" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>
+                          Rate: ${app.proposedRate}
+                        </p>
+                      )}
+                      <p className="text-muted-foreground" style={{ fontSize: "0.75rem" }}>
+                        {new Date(app.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-3">
+                      {app.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() => handleStatusChange(app.id, "accepted")}
+                            disabled={updatingId === app.id}
+                            className="p-1.5 rounded-md bg-[#ECFDF5] text-[#059669] hover:bg-[#D1FAE5] transition-colors disabled:opacity-50"
+                            title="Accept"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(app.id, "rejected")}
+                            disabled={updatingId === app.id}
+                            className="p-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 transition-colors disabled:opacity-50"
+                            title="Reject"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      <Link
+                        to={`/messages/${app.creatorId}`}
+                        className="p-1.5 rounded-md bg-[#EEF2FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
+                        title="Message creator"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </Link>
+                      <Link
+                        to={`/creators/${app.creatorProfileId || app.creatorId}`}
+                        className="p-1.5 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                        title="View profile"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

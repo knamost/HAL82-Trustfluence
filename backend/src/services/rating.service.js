@@ -10,8 +10,45 @@
 
 import { eq, and, sql } from 'drizzle-orm';
 import db from '../db/index.js';
-import { ratings, reviews } from '../models/index.js';
+import { ratings, reviews, applications, requirements } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
+
+/**
+ * Check whether there is an accepted application relationship between two users.
+ * A creator can only rate/review a brand (and vice-versa) after an application
+ * has been accepted.
+ */
+async function hasAcceptedRelationship(fromUserId, toUserId) {
+  // creator → brand direction
+  const [asCreator] = await db
+    .select({ id: applications.id })
+    .from(applications)
+    .innerJoin(requirements, eq(applications.requirementId, requirements.id))
+    .where(
+      and(
+        eq(applications.creatorId, fromUserId),
+        eq(requirements.brandId, toUserId),
+        eq(applications.status, 'accepted'),
+      ),
+    )
+    .limit(1);
+  if (asCreator) return true;
+
+  // brand → creator direction
+  const [asBrand] = await db
+    .select({ id: applications.id })
+    .from(applications)
+    .innerJoin(requirements, eq(applications.requirementId, requirements.id))
+    .where(
+      and(
+        eq(applications.creatorId, toUserId),
+        eq(requirements.brandId, fromUserId),
+        eq(applications.status, 'accepted'),
+      ),
+    )
+    .limit(1);
+  return !!asBrand;
+}
 
 // ─── Ratings ─────────────────────────────────────────────────────────────────
 
@@ -26,6 +63,9 @@ import { AppError } from '../utils/AppError.js';
  */
 export async function upsertRating(fromUserId, toUserId, score) {
   if (fromUserId === toUserId) throw new AppError('Cannot rate yourself');
+
+  const related = await hasAcceptedRelationship(fromUserId, toUserId);
+  if (!related) throw new AppError('You can only rate users after an accepted application', 403);
 
   // Upsert: one rating per (from, to) pair
   const [existing] = await db
@@ -90,6 +130,9 @@ export async function getRatingsForUser(userId) {
  */
 export async function createReview(fromUserId, toUserId, content) {
   if (fromUserId === toUserId) throw new AppError('Cannot review yourself');
+
+  const related = await hasAcceptedRelationship(fromUserId, toUserId);
+  if (!related) throw new AppError('You can only review users after an accepted application', 403);
 
   const [review] = await db
     .insert(reviews)

@@ -32,6 +32,8 @@ import requirementsRouter from './routes/requirements.route.js';
 import feedbackRouter from './routes/feedback.route.js';
 import socialRouter from './routes/social.route.js';
 import adminRouter from './routes/admin.route.js';
+import applicationsRouter from './routes/applications.route.js';
+import messagesRouter from './routes/messages.route.js';
 
 const app = express();
 const PORT = process.env.PORT ?? 8000;
@@ -62,6 +64,8 @@ app.use('/api/requirements', requirementsRouter);
 app.use('/api/feedback', feedbackRouter);
 app.use('/api/social', socialRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/applications', applicationsRouter);
+app.use('/api/messages', messagesRouter);
 
 // --- Error handler (must be last) ---
 app.use(errorHandler);

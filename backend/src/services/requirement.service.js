@@ -10,7 +10,7 @@
 
 import { eq, gte, sql, and } from 'drizzle-orm';
 import db from '../db/index.js';
-import { requirements } from '../models/index.js';
+import { requirements, brandProfiles } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
 
 /**
@@ -43,7 +43,9 @@ export async function listRequirements({ niche, minFollowers, status, page = 1, 
   const conditions = [];
 
   if (niche) {
-    conditions.push(sql`${requirements.niches} @> ${JSON.stringify([niche])}::jsonb`);
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM jsonb_array_elements_text(${requirements.niches}) AS n WHERE lower(n) = lower(${niche}))`,
+    );
   }
   if (minFollowers) {
     conditions.push(gte(requirements.minFollowers, Number(minFollowers)));
@@ -54,7 +56,24 @@ export async function listRequirements({ niche, minFollowers, status, page = 1, 
 
   const offset = (Number(page) - 1) * Number(limit);
 
-  let query = db.select().from(requirements);
+  let query = db
+    .select({
+      id: requirements.id,
+      brandId: requirements.brandId,
+      brandName: brandProfiles.companyName,
+      title: requirements.title,
+      description: requirements.description,
+      niches: requirements.niches,
+      minFollowers: requirements.minFollowers,
+      minEngagementRate: requirements.minEngagementRate,
+      budgetMin: requirements.budgetMin,
+      budgetMax: requirements.budgetMax,
+      status: requirements.status,
+      createdAt: requirements.createdAt,
+      updatedAt: requirements.updatedAt,
+    })
+    .from(requirements)
+    .leftJoin(brandProfiles, eq(requirements.brandId, brandProfiles.userId));
   if (conditions.length > 0) {
     query = query.where(and(...conditions));
   }
