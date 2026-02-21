@@ -107,7 +107,26 @@ export async function listCreators({ niche, minFollowers, minEngagement, search,
   }
 
   const results = await query.limit(Number(limit)).offset(offset);
-  return results;
+
+  // Attach avgRating and ratingCount to each creator
+  const enriched = await Promise.all(
+    results.map(async (creator) => {
+      const [agg] = await db
+        .select({
+          avg: sql`COALESCE(AVG(${ratings.score}), 0)`,
+          count: sql`COUNT(${ratings.id})`,
+        })
+        .from(ratings)
+        .where(eq(ratings.toUserId, creator.userId));
+      return {
+        ...creator,
+        avgRating: Number(Number(agg.avg).toFixed(1)),
+        ratingCount: Number(agg.count),
+      };
+    }),
+  );
+
+  return enriched;
 }
 
 /**

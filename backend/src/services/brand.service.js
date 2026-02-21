@@ -95,18 +95,28 @@ export async function listBrands({ category, minRating, search, page = 1, limit 
 
   let results = await query.limit(Number(limit)).offset(offset);
 
-  // If minRating filter, we need to post-filter (small scale is fine)
+  // Attach avgRating + ratingCount to every brand
+  const enriched = await Promise.all(
+    results.map(async (brand) => {
+      const [agg] = await db
+        .select({
+          avg: sql`COALESCE(AVG(${ratings.score}), 0)`,
+          count: sql`COUNT(${ratings.id})`,
+        })
+        .from(ratings)
+        .where(eq(ratings.toUserId, brand.userId));
+      return {
+        ...brand,
+        avgRating: Number(Number(agg.avg).toFixed(1)),
+        ratingCount: Number(agg.count),
+      };
+    }),
+  );
+  results = enriched;
+
+  // If minRating filter, post-filter
   if (minRating) {
-    const enriched = await Promise.all(
-      results.map(async (brand) => {
-        const [agg] = await db
-          .select({ avg: sql`COALESCE(AVG(${ratings.score}), 0)` })
-          .from(ratings)
-          .where(eq(ratings.toUserId, brand.userId));
-        return { ...brand, avgRating: Number(agg.avg) };
-      })
-    );
-    results = enriched.filter((b) => b.avgRating >= Number(minRating));
+    results = results.filter((b) => b.avgRating >= Number(minRating));
   }
 
   return results;

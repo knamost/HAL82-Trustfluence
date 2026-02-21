@@ -26,7 +26,7 @@ import { useState, useEffect } from "react";
 function getNavItems(role) {
   const common = [
     { to: "/", icon: Home, label: "Home" },
-    { to: "/creators", icon: Search, label: "Discover Creators" },
+    { to: "/creators", icon: Search, label: "Discover" },
   ];
 
   if (role === "creator") {

@@ -8,9 +8,9 @@
  * Reviews have no uniqueness constraint — users can leave multiple.
  */
 
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import db from '../db/index.js';
-import { ratings, reviews, applications, requirements } from '../models/index.js';
+import { ratings, reviews, applications, requirements, users, creatorProfiles, brandProfiles } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
 
 /**
@@ -148,9 +148,41 @@ export async function createReview(fromUserId, toUserId, content) {
  * @returns {Object[]} array of review rows
  */
 export async function getReviewsForUser(userId) {
-  return db
-    .select()
+  const rows = await db
+    .select({
+      id: reviews.id,
+      fromUserId: reviews.fromUserId,
+      toUserId: reviews.toUserId,
+      content: reviews.content,
+      createdAt: reviews.createdAt,
+      reviewerFirstName: users.firstName,
+      reviewerLastName: users.lastName,
+      reviewerCreatorName: creatorProfiles.displayName,
+      reviewerBrandName: brandProfiles.companyName,
+      ratingScore: ratings.score,
+    })
     .from(reviews)
+    .innerJoin(users, eq(reviews.fromUserId, users.id))
+    .leftJoin(creatorProfiles, eq(reviews.fromUserId, creatorProfiles.userId))
+    .leftJoin(brandProfiles, eq(reviews.fromUserId, brandProfiles.userId))
+    .leftJoin(
+      ratings,
+      and(eq(ratings.fromUserId, reviews.fromUserId), eq(ratings.toUserId, reviews.toUserId)),
+    )
     .where(eq(reviews.toUserId, userId))
-    .orderBy(reviews.createdAt);
+    .orderBy(desc(reviews.createdAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    fromUserId: r.fromUserId,
+    toUserId: r.toUserId,
+    content: r.content,
+    createdAt: r.createdAt,
+    reviewerName:
+      r.reviewerCreatorName ||
+      r.reviewerBrandName ||
+      [r.reviewerFirstName, r.reviewerLastName].filter(Boolean).join(' ') ||
+      r.fromUserId,
+    rating: r.ratingScore || 0,
+  }));
 }

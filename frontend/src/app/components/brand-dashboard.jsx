@@ -73,8 +73,8 @@ export function BrandDashboard() {
             Array.isArray(reviewsData)
               ? reviewsData.map((r) => ({
                   id: r.id,
-                  reviewerName: r.fromUserId || "User",
-                  rating: 0,
+                  reviewerName: r.reviewerName || r.fromUserId || "User",
+                  rating: r.rating || 0,
                   comment: r.content,
                   date: r.createdAt,
                 }))

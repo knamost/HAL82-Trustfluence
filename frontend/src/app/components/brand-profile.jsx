@@ -20,10 +20,11 @@ export function BrandProfile() {
       setLoading(true);
       setError("");
       try {
-        const [profile, ratingsData, reviewsData, reqs] = await Promise.all([
-          getBrand(id),
-          getRatings(id).catch(() => ({ ratings: [], avgRating: 0, ratingCount: 0 })),
-          getReviews(id).catch(() => []),
+        const profile = await getBrand(id);
+        const uid = profile.userId;
+        const [ratingsData, reviewsData, reqs] = await Promise.all([
+          getRatings(uid).catch(() => ({ ratings: [], avgRating: 0, ratingCount: 0 })),
+          getReviews(uid).catch(() => []),
           listRequirements({ status: "open" }).catch(() => []),
         ]);
         const rInfo = ratingsData;
@@ -49,8 +50,8 @@ export function BrandProfile() {
         })));
         setReviews(reviewsData.map((r) => ({
           id: r.id,
-          reviewerName: r.fromUserId,
-          rating: 0,
+          reviewerName: r.reviewerName || r.fromUserId,
+          rating: r.rating || 0,
           comment: r.content,
           date: r.createdAt,
         })));

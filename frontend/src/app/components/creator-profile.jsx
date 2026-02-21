@@ -31,10 +31,11 @@ export function CreatorProfile() {
       setLoading(true);
       setError("");
       try {
-        const [profile, reviewsData, ratingsData] = await Promise.all([
-          getCreator(id),
-          getReviews(id).catch(() => []),
-          getRatings(id).catch(() => ({ ratings: [], avgRating: 0, ratingCount: 0 })),
+        const profile = await getCreator(id);
+        const uid = profile.userId;
+        const [reviewsData, ratingsData] = await Promise.all([
+          getReviews(uid).catch(() => []),
+          getRatings(uid).catch(() => ({ ratings: [], avgRating: 0, ratingCount: 0 })),
         ]);
         setCreator({
           name: profile.displayName,
@@ -46,14 +47,15 @@ export function CreatorProfile() {
           engagementRate: profile.engagementRate,
           niches: profile.niches || [],
           promotionTypes: profile.promotionTypes || [],
+          userId: uid,
           rating: ratingsData.avgRating || 0,
           reviewCount: ratingsData.ratingCount || 0,
         });
         setRatingInfo({ avgRating: ratingsData.avgRating || 0, ratingCount: ratingsData.ratingCount || 0 });
         setReviews(reviewsData.map((r) => ({
           id: r.id,
-          reviewerName: r.fromUserId,
-          rating: 0,
+          reviewerName: r.reviewerName || r.fromUserId,
+          rating: r.rating || 0,
           comment: r.content,
           date: r.createdAt,
         })));
